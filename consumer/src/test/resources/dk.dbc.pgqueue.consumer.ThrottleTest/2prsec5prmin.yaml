@@ -1,0 +1,30 @@
+rules: "2/s,5/m"
+test:
+    -   delay: 0
+        duration: 300
+        result: false
+# 300ms [0] [0]
+    -   delay: 0
+        duration: 300
+        result: false
+# 600ms [0, 300] [0, 300]
+    -   delay: 400
+        duration: 200
+        result: false
+# 1200ms [300, 1000], [0, 300, 1000]
+    -   delay: 100
+        duration: 200
+        result: false
+# 1500ms [1000, 1300], [0, 300, 1000, 1300]
+    -   delay: 500
+        duration: 400
+        result: false
+# 2400ms [1300, 2000], [0, 300, 1000, 1300, 2000]
+    -   delay: 57600
+        duration: 200
+        result: false
+# 60200ms [2000, 60000], [300, 1000, 1300, 2000, 60000]
+    -   delay: 100
+        duration: 200
+        result: false
+# 60300ms [60000, 60300], [1000, 1300, 2000, 60000, 60300]

@@ -8,4 +8,3 @@ CREATE TABLE queue (
 CREATE TABLE queue_error (
   job TEXT NOT NULL
 );
-

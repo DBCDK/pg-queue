@@ -22,6 +22,8 @@
     </parent>
 
     <modules>
+        <module>common</module>
+        <module>supplier</module>
         <module>consumer</module>
     </modules>
 
