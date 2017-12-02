@@ -146,7 +146,7 @@ public class Load {
                  PreparedQueueSupplier queueSupplier = new QueueSupplier(STORAGE_ABSTRACTION).preparedSupplier(connection)) {
                 log.info("Got connection");
                 for (;;) {
-                    long number = counter.getAndIncrement();
+                    long number = counter.incrementAndGet();
                     if (number > count) {
                         break;
                     }
