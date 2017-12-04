@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 /**
  *
  * @author DBC {@literal <dbc.dk>}
- * @param <T>
+ * @param <T> the job type
  */
 public class PreparedQueueSupplier<T> implements AutoCloseable {
 

@@ -25,7 +25,7 @@ import java.util.Collections;
 /**
  *
  * @author DBC {@literal <dbc.dk>}
- * @param <T>
+ * @param <T> the job type
  */
 public class QueueSupplier<T> {
 
