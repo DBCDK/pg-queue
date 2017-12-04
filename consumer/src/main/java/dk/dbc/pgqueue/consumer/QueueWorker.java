@@ -53,6 +53,7 @@ public interface QueueWorker {
      * java.util.concurrent.TimeUnit)
      *
      * @param timeout how many milliseconds to wait for termination
+     * @param tu      time unit
      */
     void awaitTermination(long timeout, TimeUnit tu);
 
@@ -189,10 +190,11 @@ public interface QueueWorker {
         /**
          * Set the executor, that the processing should run in.
          * <p>
-         * If none is set, a fixed threadpool with one
+         * If none is set, a fixed threadpool with matching threads number to
+         * consumer count
          *
-         * @param executor
-         * @return
+         * @param executor the executor to run in
+         * @return self
          */
         public Builder executor(ExecutorService executor) {
             this.executor = setOrFail(this.executor, executor, "executor");
@@ -245,7 +247,7 @@ public interface QueueWorker {
          *
          * @param <T>                Job type
          * @param storageAbstraction database/job converter
-         * @param consumers           consumer instances
+         * @param consumers          consumer instances
          * @return queue worker
          */
         public <T> QueueWorker build(QueueStorageAbstraction<T> storageAbstraction, JobConsumer<T>... consumers) {
@@ -257,7 +259,7 @@ public interface QueueWorker {
          *
          * @param <T>                Job type
          * @param storageAbstraction database/job converter
-         * @param consumers           consumer instances
+         * @param consumers          consumer instances
          * @return queue worker
          */
         public <T> QueueWorker build(QueueStorageAbstraction<T> storageAbstraction, Collection<JobConsumer<T>> consumers) {
