@@ -71,7 +71,13 @@ class JobWorker<T> implements Runnable {
         while (harvester.isRunning()) {
             try {
                 JobWithMetaData<T> job = nextJob();
-                process(job);
+                if (job == null) {
+                    if(harvester.isRunning()) {
+                        log.error("Unknown State!!! got no job, but is still running");
+                    }
+                } else {
+                    process(job);
+                }
             } catch (Exception ex) {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
@@ -242,7 +248,6 @@ class JobWorker<T> implements Runnable {
         }
     }
 
-
     /**
      * Update tries count
      *
@@ -263,7 +268,7 @@ class JobWorker<T> implements Runnable {
     /**
      * Update tries count and postpone dequeue
      *
-     * @param job    the job and metadata for the queue entry
+     * @param job         the job and metadata for the queue entry
      * @param postponedMs number of milliseconds to postpone dequeue
      * @throws SQLException from database errors
      */
@@ -438,12 +443,11 @@ class JobWorker<T> implements Runnable {
         return selectStmt;
     }
 
-
     /**
      * Construct a prepared statement, if needed, and fill in data
      *
      * @param newTriesCount how many times the job has been tried
-     * @param job    the job and metadata for the queue entry
+     * @param job           the job and metadata for the queue entry
      * @return sql statement
      * @throws SQLException for database errors
      */
@@ -460,8 +464,8 @@ class JobWorker<T> implements Runnable {
     /**
      * Construct a prepared statement, if needed, and fill in data
      *
-     * @param job    the job and metadata for the queue entry
-     * @param milliseconds  how long to postpone processing
+     * @param job          the job and metadata for the queue entry
+     * @param milliseconds how long to postpone processing
      * @return sql statement
      * @throws SQLException for database errors
      */
