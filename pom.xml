@@ -25,6 +25,7 @@
         <module>common</module>
         <module>supplier</module>
         <module>consumer</module>
+        <module>ee</module>
     </modules>
 
     <dependencies>
