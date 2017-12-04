@@ -18,7 +18,7 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -33,10 +33,13 @@ import java.sql.Timestamp;
  */
 public class JobMetaData {
 
-    static final String COLUMNS = "ctid, consumer, queued, dequeueAfter, tries";
-    static final int COLUMN_COUNT = 5;
+    static final String COLUMNS = "consumer, queued, dequeueAfter, tries";
+    static final int COLUMN_COUNT = 4;
+    static final String RETRY_PLACEHOLDER = "?, ?, ?, ?";
+    static final int RETRY_PLACEHOLDER_COUNT = 4;
+    static final String POSTPONED_PLACEHOLDER = "?, ?, clock_timestamp() + ? * INTERVAL '1 MILLISECONDS', ?";
+    static final int POSTPONED_PLACEHOLDER_COUNT = 4;
 
-    private final Object ctid;
     private final String consumer;
     private final Timestamp queued;
     private final Timestamp dequeueAfter;
@@ -51,7 +54,6 @@ public class JobMetaData {
      * @throws SQLException in case of communication errors with the database
      */
     JobMetaData(ResultSet resultSet, int column) throws SQLException {
-        ctid = resultSet.getObject(column++);
         consumer = resultSet.getString(column++);
         queued = resultSet.getTimestamp(column++);
         dequeueAfter = resultSet.getTimestamp(column++);
@@ -59,13 +61,34 @@ public class JobMetaData {
     }
 
     /**
-     * The row id
+     * Fill into insert statement
      *
-     * @return Object referring the selected row (only valid until 1st update of
-     *         said row)
+     * @param stmt        the statement what points out the columns listed in
+     *                    {@link #COLUMNS}
+     * @param startColumn position of first job column in the insert expression
+     * @throws SQLException in case of sql type errors
      */
-    Object getCTID() {
-        return ctid;
+    void save(PreparedStatement stmt, int column) throws SQLException {
+        stmt.setString(column++, consumer);
+        stmt.setTimestamp(column++, queued);
+        stmt.setTimestamp(column++, dequeueAfter);
+        stmt.setInt(column++, tries);
+    }
+
+    /**
+     * Fill into insert statement
+     *
+     * @param stmt        the statement what points out the columns listed in
+     *                    {@link #COLUMNS}
+     * @param startColumn position of first job column in the insert expression
+     * @param postponed   how many milliseconds to postpone dequeue
+     * @throws SQLException in case of sql type errors
+     */
+    void saveDelayed(PreparedStatement stmt, int column, long postponed) throws SQLException {
+        stmt.setString(column++, consumer);
+        stmt.setTimestamp(column++, queued);
+        stmt.setLong(column++, postponed);
+        stmt.setInt(column++, tries);
     }
 
     /**
@@ -109,6 +132,6 @@ public class JobMetaData {
 
     @Override
     public String toString() {
-        return "Job{" + "ctid=" + ctid + ", consumer=" + consumer + ", queued=" + queued + ", dequeueAfter=" + dequeueAfter + ", tries=" + tries + '}';
+        return "Job{" + "consumer=" + consumer + ", queued=" + queued + ", dequeueAfter=" + dequeueAfter + ", tries=" + tries + '}';
     }
 }

@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
  *
  *
  * @author DBC {@literal <dbc.dk>}
- * @param <T>
+ * @param <T> Job type
  */
 class Harvester<T> implements QueueWorker {
 
@@ -58,40 +58,25 @@ class Harvester<T> implements QueueWorker {
 
     static class SqlSelect {
 
-        private static final String SQL = "SELECT " + JobMetaData.COLUMNS + ", %s " +
-                                          "FROM queue" +
+        private static final String SQL = "DELETE" +
+                                          " FROM queue" +
                                           " WHERE ctid = (SELECT ctid FROM queue WHERE consumer=?" +
                                           " AND dequeueAfter<=clock_timestamp()" +
                                           " AND dequeueAfter>=?" +
                                           " ORDER BY consumer, dequeueAfter" + // hit existing index
                                           " FOR UPDATE SKIP LOCKED" +
-                                          " LIMIT 1)";
+                                          " LIMIT 1)" +
+                                          " RETURNING " + JobMetaData.COLUMNS + ", %s";
         static final int QUEUE_POS = 1;
         static final int TIMESTAMP_POS = 2;
 
     }
 
-    static class SqlDelete {
+    private static class SqlInsert {
 
-        static final String SQL = "DELETE FROM queue WHERE ctid=?";
-        static final int CTID_POS = 1;
-    }
-
-    static class SqlRetry {
-
-        static final String SQL = "UPDATE queue SET tries=? WHERE ctid=?";
-        static final int TRIES_POS = 1;
-        static final int CTID_POS = 2;
-
-    }
-
-    static class SqlPostpone {
-
-        static final String SQL = "UPDATE queue SET tries=?, dequeueAfter=clock_timestamp() + ? * INTERVAL '1 MILLISECONDS' WHERE ctid=?";
-        static final int TRIES_POS = 1;
-        static final int MILLISECONDS_POS = 2;
-        static final int CTID_POS = 3;
-
+        private static final String SQL = "INSERT INTO queue (" +
+                                          JobMetaData.COLUMNS + ", %s)" +
+                                          " VALUES(%s, %s)";
     }
 
     static class SqlFailed {
@@ -109,11 +94,12 @@ class Harvester<T> implements QueueWorker {
     private final List<JobWorker<T>> workers;
 
     private final String selectSql;
+    private final String retrySql;
+    private final String postponeSql;
     private final String failedSql;
 
     final Timer databaseconnectTimer;
     final Timer dequeueTimer;
-    final Timer deleteTimer;
     final Timer retryTimer;
     final Timer postponeTimer;
     final Timer failureTimer;
@@ -133,13 +119,16 @@ class Harvester<T> implements QueueWorker {
                 .map(c -> new JobWorker<>(c, this))
                 .collect(Collectors.toList());
         int positionalArgumentsCount = config.storageAbstraction.columnList().length;
-        String positionalArguments
+        String jobSqlPlaceholders
                = String.join(", ",
                              Collections.nCopies(positionalArgumentsCount, "?"));
-        this.failedSql = String.format(SqlFailed.SQL, jobColumns, positionalArguments);
+
+        this.retrySql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.RETRY_PLACEHOLDER, jobSqlPlaceholders);
+        this.postponeSql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.POSTPONED_PLACEHOLDER, jobSqlPlaceholders);
+        this.failedSql = String.format(SqlFailed.SQL, jobColumns, jobSqlPlaceholders);
+
         this.databaseconnectTimer = config.metricRegistry.timer("QueueWorker-databaseconnect");
         this.dequeueTimer = config.metricRegistry.timer("QueueWorker-dequeue");
-        this.deleteTimer = config.metricRegistry.timer("QueueWorker-delete");
         this.retryTimer = config.metricRegistry.timer("QueueWorker-retry");
         this.postponeTimer = config.metricRegistry.timer("QueueWorker-postpone");
         this.failureTimer = config.metricRegistry.timer("QueueWorker-failure");
@@ -225,6 +214,24 @@ class Harvester<T> implements QueueWorker {
      */
     String getSelectSql() {
         return selectSql;
+    }
+
+    /**
+     * Get the SQL statement for retrying a job
+     *
+     * @return SQL statement
+     */
+    String getRetrySql() {
+        return retrySql;
+    }
+
+    /**
+     * Get the SQL statement for postponed retry of a job
+     *
+     * @return SQL statement
+     */
+    String getPostponeSql() {
+        return postponeSql;
     }
 
     /**

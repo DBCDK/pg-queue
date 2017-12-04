@@ -44,7 +44,6 @@ class JobWorker<T> implements Runnable {
     private PreparedStatement timestampStmt;
     private PreparedStatement clockStmt;
     private PreparedStatement selectStmt;
-    private PreparedStatement deleteStmt;
     private PreparedStatement retryStmt;
     private PreparedStatement postponeStmt;
     private PreparedStatement failedStmt;
@@ -56,7 +55,6 @@ class JobWorker<T> implements Runnable {
         this.harvester = harvester;
         this.connection = null;
         this.selectStmt = null;
-        this.deleteStmt = null;
         this.retryStmt = null;
         this.postponeStmt = null;
         this.failedStmt = null;
@@ -140,7 +138,6 @@ class JobWorker<T> implements Runnable {
             Savepoint savepoint = connection.setSavepoint();
             try {
                 consumer.accept(connection, job.getActualJob(), job);
-                deleteJob(job);
                 success = true;
             } catch (FatalQueueError ex) {
                 log.debug("Fatal error: {}", ex.getMessage());
@@ -245,34 +242,18 @@ class JobWorker<T> implements Runnable {
         }
     }
 
-    /**
-     * remove a queue entry
-     *
-     * @param metaData the metadata for the queue entry
-     * @throws SQLException from database errors
-     */
-    private void deleteJob(JobMetaData metaData) throws SQLException {
-        log.debug("deleting job");
-        int rows;
-        try (Timer.Context time = harvester.deleteTimer.time()) {
-            rows = getDeleteStmt(metaData.getCTID()).executeUpdate();
-        }
-        if (rows != 1) {
-            log.warn("Strange: action deleting processed job, modified rows = " + rows);
-        }
-    }
 
     /**
      * Update tries count
      *
-     * @param metaData the metadata for the queue entry
+     * @param job the job and metadata for the queue entry
      * @throws SQLException from database errors
      */
-    private void retryJob(JobMetaData metaData) throws SQLException {
+    private void retryJob(JobWithMetaData<T> job) throws SQLException {
         log.debug("retrying job");
         int rows;
         try (Timer.Context time = harvester.retryTimer.time()) {
-            rows = getRetryStmt(metaData.getCTID(), metaData.getTries()).executeUpdate();
+            rows = getRetryStmt(job).executeUpdate();
         }
         if (rows != 1) {
             log.warn("Strange: retrying job, modified rows = " + rows);
@@ -282,15 +263,15 @@ class JobWorker<T> implements Runnable {
     /**
      * Update tries count and postpone dequeue
      *
-     * @param metaData    the metadata for the queue entry
+     * @param job    the job and metadata for the queue entry
      * @param postponedMs number of milliseconds to postpone dequeue
      * @throws SQLException from database errors
      */
-    private void postponeJob(JobMetaData metaData, long postponedMs) throws SQLException {
+    private void postponeJob(JobWithMetaData<T> job, long postponedMs) throws SQLException {
         log.debug("postpone job for {}ms", postponedMs);
         int rows;
         try (Timer.Context time = harvester.postponeTimer.time()) {
-            rows = getPostponeStmt(metaData.getCTID(), metaData.getTries(), postponedMs).executeUpdate();
+            rows = getPostponeStmt(job, postponedMs).executeUpdate();
         }
         if (rows != 1) {
             log.warn("Strange: postponing job, modified rows = " + rows);
@@ -306,7 +287,6 @@ class JobWorker<T> implements Runnable {
      */
     private void failJob(JobWithMetaData<T> job, String message) throws SQLException {
         log.debug("failing with: {}", message);
-        deleteJob(job);
         PreparedStatement stmt = getFailedStmt(job, message);
         harvester.settings.storageAbstraction
                 .saveJob(job.getActualJob(),
@@ -365,10 +345,6 @@ class JobWorker<T> implements Runnable {
         if (selectStmt != null) {
             sql(() -> selectStmt.close(), "Error closing select statement");
             selectStmt = null;
-        }
-        if (deleteStmt != null) {
-            sql(() -> deleteStmt.close(), "Error closing delete statement");
-            deleteStmt = null;
         }
         if (retryStmt != null) {
             sql(() -> retryStmt.close(), "Error closing retry statement");
@@ -462,54 +438,40 @@ class JobWorker<T> implements Runnable {
         return selectStmt;
     }
 
-    /**
-     * Construct a prepared statement, if needed, and fill in data
-     *
-     * @param ctid row ref
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getDeleteStmt(Object ctid) throws SQLException {
-        if (deleteStmt == null) {
-            deleteStmt = connection.prepareStatement(Harvester.SqlDelete.SQL);
-        }
-        deleteStmt.setObject(Harvester.SqlDelete.CTID_POS, ctid);
-        return deleteStmt;
-    }
 
     /**
      * Construct a prepared statement, if needed, and fill in data
      *
      * @param newTriesCount how many times the job has been tried
-     * @param ctid          row ref
+     * @param job    the job and metadata for the queue entry
      * @return sql statement
      * @throws SQLException for database errors
      */
-    private PreparedStatement getRetryStmt(Object ctid, int newTriesCount) throws SQLException {
+    private PreparedStatement getRetryStmt(JobWithMetaData<T> job) throws SQLException {
         if (retryStmt == null) {
-            retryStmt = connection.prepareStatement(Harvester.SqlRetry.SQL);
+            retryStmt = connection.prepareStatement(harvester.getRetrySql());
         }
-        retryStmt.setObject(Harvester.SqlRetry.CTID_POS, ctid);
-        retryStmt.setObject(Harvester.SqlPostpone.TRIES_POS, newTriesCount);
+        job.save(retryStmt, 1);
+        harvester.settings.storageAbstraction
+                .saveJob(job.getActualJob(), retryStmt, 1 + JobMetaData.RETRY_PLACEHOLDER_COUNT);
         return retryStmt;
     }
 
     /**
      * Construct a prepared statement, if needed, and fill in data
      *
-     * @param ctid          row ref
-     * @param newTriesCount how many times the job has been tried
+     * @param job    the job and metadata for the queue entry
      * @param milliseconds  how long to postpone processing
      * @return sql statement
      * @throws SQLException for database errors
      */
-    private PreparedStatement getPostponeStmt(Object ctid, int newTriesCount, long milliseconds) throws SQLException {
+    private PreparedStatement getPostponeStmt(JobWithMetaData<T> job, long milliseconds) throws SQLException {
         if (postponeStmt == null) {
-            postponeStmt = connection.prepareStatement(Harvester.SqlPostpone.SQL);
+            postponeStmt = connection.prepareStatement(harvester.getPostponeSql());
         }
-        postponeStmt.setObject(Harvester.SqlPostpone.TRIES_POS, newTriesCount);
-        postponeStmt.setObject(Harvester.SqlPostpone.CTID_POS, ctid);
-        postponeStmt.setLong(Harvester.SqlPostpone.MILLISECONDS_POS, milliseconds);
+        job.saveDelayed(postponeStmt, 1, milliseconds);
+        harvester.settings.storageAbstraction
+                .saveJob(job.getActualJob(), postponeStmt, 1 + JobMetaData.POSTPONED_PLACEHOLDER_COUNT);
         return postponeStmt;
     }
 
