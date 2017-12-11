@@ -34,6 +34,16 @@ pipeline {
                 //junit "**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml"
             }
         }
+        stage("upload") {
+            steps {
+                script {
+                    if (env.BRANCH_NAME ==~ /master|trunk/) {
+                        sh """
+                            mvn -Dmaven.repo.local=\$WORKSPACE/.repo jar:jar deploy:deploy
+                        """
+                    }
+                }
+            }
+        }
     }
-
 }
