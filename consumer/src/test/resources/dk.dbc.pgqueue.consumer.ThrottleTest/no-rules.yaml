@@ -1,0 +1,10 @@
+rules: ""
+test:
+    -   delay: 0
+        result: true
+    -   delay: 0
+        result: false
+    -   delay: 0
+        result: true
+    -   delay: 0
+        result: false

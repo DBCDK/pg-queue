@@ -1,0 +1,23 @@
+rules: "2/50ms"
+test:
+    -   delay: 0
+        result: false
+# 1 blocked
+    -   delay: 0
+        result: false
+# 2 blocked
+    -   delay: 50
+        result: true
+# both timed out
+    -   delay: 0
+        duration: 20
+        result: false
+# 1 blocked
+    -   delay: 0
+        result: false
+# 2 blocked - 20 ms since 1st
+    -   delay: 30
+        result: false
+# 2 blocked - 30 ms since 1st
+    -   delay: 20
+        result: false

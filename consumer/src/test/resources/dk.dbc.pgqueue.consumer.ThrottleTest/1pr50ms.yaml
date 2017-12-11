@@ -1,0 +1,12 @@
+rules: "1/50ms"
+test:
+    -   delay: 0
+        result: false
+# 1 blocked
+    -   delay: 50
+        result: false
+# 1 blocked
+    -   delay: 50
+        result: true
+    -   delay: 0
+        result: false
