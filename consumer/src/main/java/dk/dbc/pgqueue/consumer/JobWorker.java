@@ -72,7 +72,7 @@ class JobWorker<T> implements Runnable {
             try {
                 JobWithMetaData<T> job = nextJob();
                 if (job == null) {
-                    if(harvester.isRunning()) {
+                    if (harvester.isRunning()) {
                         log.error("Unknown State!!! got no job, but is still running");
                     }
                 } else {
@@ -126,7 +126,7 @@ class JobWorker<T> implements Runnable {
 
     /**
      * Process a job
-     *
+     * <p>
      * Depending on the exception state of the call to {@link JobConsumer} a job
      * can be:
      * <pre>
@@ -148,12 +148,12 @@ class JobWorker<T> implements Runnable {
             } catch (FatalQueueError ex) {
                 log.debug("Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
-                failJob(job, ex.getMessage());
+                failJob(job, getExceptionMessage(ex));
             } catch (PostponedNonFatalQueueError ex) {
                 log.debug("Non Fatal error: {} (postpone)", ex.getMessage());
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
-                    failJob(job, ex.getMessage());
+                    failJob(job, getExceptionMessage(ex));
                 } else {
                     postponeJob(job, ex.getPostponedMs());
                 }
@@ -161,7 +161,8 @@ class JobWorker<T> implements Runnable {
                 log.debug("Non Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
-                    failJob(job, ex.getMessage());
+                    String message = getExceptionMessage(ex);
+                    failJob(job, message);
                 } else {
                     retryJob(job);
                 }
@@ -178,6 +179,19 @@ class JobWorker<T> implements Runnable {
         } finally {
             harvester.settings.failureThrottle.register(success);
         }
+    }
+
+    private String getExceptionMessage(Exception ex) {
+        Throwable tw = ex;
+
+        while (tw != null) {
+            String message = ex.getMessage();
+            if (message != null) {
+                return message;
+            }
+            tw = tw.getCause();
+        }
+        return "Anonymous " + ex.getClass().getSimpleName();
     }
 
     /**
