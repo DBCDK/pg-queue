@@ -148,11 +148,13 @@ class JobWorker<T> implements Runnable {
             } catch (FatalQueueError ex) {
                 log.debug("Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
+                connection.commit(); // In case of failJob fails
                 failJob(job, getExceptionMessage(ex));
             } catch (PostponedNonFatalQueueError ex) {
                 log.debug("Non Fatal error: {} (postpone)", ex.getMessage());
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
+                    connection.commit(); // In case of failJob fails
                     failJob(job, getExceptionMessage(ex));
                 } else {
                     postponeJob(job, ex.getPostponedMs());
@@ -162,6 +164,7 @@ class JobWorker<T> implements Runnable {
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
                     String message = getExceptionMessage(ex);
+                    connection.commit(); // In case of failJob fails
                     failJob(job, message);
                 } else {
                     retryJob(job);
@@ -184,14 +187,17 @@ class JobWorker<T> implements Runnable {
     private String getExceptionMessage(Exception ex) {
         Throwable tw = ex;
 
-        while (tw != null) {
-            String message = ex.getMessage();
-            if (message != null) {
-                return message;
-            }
+        String message = null;
+
+        while (message == null && tw != null) {
+            message = ex.getMessage();
             tw = tw.getCause();
         }
-        return "Anonymous " + ex.getClass().getSimpleName();
+        if (message == null) {
+            message = "Anonymous " + ex.getClass().getSimpleName();
+        }
+        log.debug("Exception message is: {}", message);
+        return message;
     }
 
     /**
