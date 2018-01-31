@@ -190,7 +190,7 @@ class JobWorker<T> implements Runnable {
         String message = null;
 
         while (message == null && tw != null) {
-            message = ex.getMessage();
+            message = tw.getMessage();
             tw = tw.getCause();
         }
         if (message == null) {
