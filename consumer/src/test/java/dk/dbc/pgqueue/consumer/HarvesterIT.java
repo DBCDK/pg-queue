@@ -161,6 +161,7 @@ public class HarvesterIT {
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
         System.out.println("jobs = " + jobs);
+        System.out.println("failedJobs = " + failedJobs());
         assertEquals(Arrays.asList("0,0,1".split(",")), jobs);
         assertEquals(Arrays.asList("0".split(",")), failedJobs());
     }
