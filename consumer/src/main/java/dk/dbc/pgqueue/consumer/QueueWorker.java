@@ -208,7 +208,7 @@ public interface QueueWorker {
          * @return self
          */
         public Builder metricRegistry(MetricRegistry metricRegistry) {
-            this.metricRegistry = setOrFail(this.metricRegistry, metricRegistry, "executor");
+            this.metricRegistry = setOrFail(this.metricRegistry, metricRegistry, "metricsRegistry");
             return this;
         }
 
