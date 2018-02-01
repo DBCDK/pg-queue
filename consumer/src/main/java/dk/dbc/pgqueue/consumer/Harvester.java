@@ -19,6 +19,7 @@
 package dk.dbc.pgqueue.consumer;
 
 import com.codahale.metrics.Counter;
+import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -119,22 +120,30 @@ class Harvester<T> implements QueueWorker {
                 .map(c -> new JobWorker<>(c, this))
                 .collect(Collectors.toList());
         int positionalArgumentsCount = config.storageAbstraction.columnList().length;
-        String jobSqlPlaceholders
-               = String.join(", ",
-                             Collections.nCopies(positionalArgumentsCount, "?"));
+        String jobSqlPlaceholders = String.join(
+                ", ",
+                Collections.nCopies(positionalArgumentsCount, "?"));
 
         this.retrySql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.RETRY_PLACEHOLDER, jobSqlPlaceholders);
         this.postponeSql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.POSTPONED_PLACEHOLDER, jobSqlPlaceholders);
         this.failedSql = String.format(SqlFailed.SQL, jobColumns, jobSqlPlaceholders);
 
-        this.databaseconnectTimer = config.metricRegistry.timer("QueueWorker-databaseconnect");
-        this.dequeueTimer = config.metricRegistry.timer("QueueWorker-dequeue");
-        this.retryTimer = config.metricRegistry.timer("QueueWorker-retry");
-        this.postponeTimer = config.metricRegistry.timer("QueueWorker-postpone");
-        this.failureTimer = config.metricRegistry.timer("QueueWorker-failure");
-        this.timestampTimer = config.metricRegistry.timer("QueueWorker-timestamp");
-        this.rescanCounter = config.metricRegistry.counter("QueueWorker-rescan");
-        this.recalcPreparedStatementCounter = config.metricRegistry.counter("QueueWorker-recalcPreparedStatement");
+        this.databaseconnectTimer = makeTimer("databaseconnect");
+        this.dequeueTimer = makeTimer("dequeue");
+        this.retryTimer = makeTimer("retry");
+        this.postponeTimer = makeTimer("postpone");
+        this.failureTimer = makeTimer("failure");
+        this.timestampTimer = makeTimer("timestamp");
+        this.rescanCounter = makeCounter("rescan");
+        this.recalcPreparedStatementCounter = makeCounter("recalcPreparedStatement");
+    }
+
+    private Timer makeTimer(String name) {
+        return settings.metricRegistry.timer(MetricRegistry.name(Harvester.class, name));
+    }
+
+    private Counter makeCounter(String name) {
+        return settings.metricRegistry.counter(MetricRegistry.name(Harvester.class, name));
     }
 
     @Override
