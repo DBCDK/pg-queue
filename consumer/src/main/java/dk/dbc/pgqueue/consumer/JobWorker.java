@@ -234,6 +234,7 @@ class JobWorker<T> implements Runnable {
                     }
                 }
             }
+            connection.rollback();
             // idle state fullscan more often, and start with fullscan
             fullScanEvery = harvester.settings.idleFullScanEvery;
             if (!hasClearedTimestamps) {
