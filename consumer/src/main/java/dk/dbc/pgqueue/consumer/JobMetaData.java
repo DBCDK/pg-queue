@@ -124,7 +124,7 @@ public class JobMetaData {
     /**
      * Number of times the row has been taken
      *
-     * @return a number >= 1
+     * @return a positive number
      */
     public int getTries() {
         return tries;
