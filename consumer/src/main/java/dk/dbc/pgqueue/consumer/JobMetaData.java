@@ -25,7 +25,7 @@ import java.sql.Timestamp;
 
 /**
  * Queue job container
- *
+ * <p>
  * Wraps a queue job, and has metadata about it
  *
  * @author DBC {@literal <dbc.dk>}
@@ -93,13 +93,13 @@ public class JobMetaData {
 
     /**
      * The queue consumer that took the row
-     *
+     * <p>
      * Only really needed for carrying the name through in case on a diag, and
      * the worker takes multiple queues
      *
      * @return String representation of consumer name
      */
-    String getConsumer() {
+    public String getConsumer() {
         return consumer;
     }
 
@@ -108,7 +108,7 @@ public class JobMetaData {
      *
      * @return timestamp
      */
-    Timestamp getQueued() {
+    public Timestamp getQueued() {
         return queued;
     }
 
@@ -117,7 +117,7 @@ public class JobMetaData {
      *
      * @return timestamp
      */
-    Timestamp getDequeueAfter() {
+    public Timestamp getDequeueAfter() {
         return dequeueAfter;
     }
 
@@ -126,7 +126,7 @@ public class JobMetaData {
      *
      * @return a number >= 1
      */
-    int getTries() {
+    public int getTries() {
         return tries;
     }
 
