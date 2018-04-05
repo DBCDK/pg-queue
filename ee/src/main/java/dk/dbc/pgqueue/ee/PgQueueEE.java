@@ -29,13 +29,14 @@ import javax.annotation.PreDestroy;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 
 /**
  * Helper class
- *
+ * <p>
  * Inherit from this, and implement abstract functions / override functions to
  * set up ad worker.
- *
+ * <p>
  * Remember:
  * <pre>
  *  * Inherited class should be annotated with:
@@ -58,7 +59,8 @@ public abstract class PgQueueEE<T> {
         Logger log = getLogger();
         log.info("Starting up");
 
-        this.worker = QueueWorker.builder()
+        this.worker = QueueWorker.builder(getStorageAbstraction())
+                .skipDuplicateJobs(getDeduplicateAbstraction())
                 .consume(getQueueNames())
                 .dataSource(getDataSource())
                 .emptyQueueSleep(getQueueEmptySleep())
@@ -69,8 +71,7 @@ public abstract class PgQueueEE<T> {
                 .idleRescanEvery(getIdleRescanEvery())
                 .maxTries(getMaxTries())
                 .metricRegistry(getMetricRegistry())
-                .build(getStorageAbstraction(),
-                       getJobConsumers());
+                .build(getJobConsumers());
         this.worker.start();
     }
 
@@ -97,6 +98,13 @@ public abstract class PgQueueEE<T> {
      * @return storage abstraction
      */
     public abstract QueueStorageAbstraction<T> getStorageAbstraction();
+
+    /**
+     * Produce a storage abstraction
+     *
+     * @return storage abstraction
+     */
+    public abstract DeduplicateAbstraction<T> getDeduplicateAbstraction();
 
     /**
      * Produce a number of job consumers
@@ -169,7 +177,7 @@ public abstract class PgQueueEE<T> {
     /**
      * Provide a number for how often a rescan for first job in queue should be
      * done, when the queue is empty.
-     *
+     * <p>
      * The {@link #getQueueEmptySleep() } value should be taken into account
      * when selecting this value, worst case before a job is found could be the
      * 2 multiplied

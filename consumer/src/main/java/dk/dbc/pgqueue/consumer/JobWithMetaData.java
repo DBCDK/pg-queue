@@ -33,7 +33,7 @@ import java.sql.SQLException;
  */
 class JobWithMetaData<T> extends JobMetaData {
 
-    private final T job;
+    private  T job;
 
     /**
      * Construct a job with metadata from a database row
@@ -56,5 +56,12 @@ class JobWithMetaData<T> extends JobMetaData {
     T getActualJob() {
         return job;
     }
+
+    void setActualJob(T job) {
+        this.job = job;
+    }
+
+
+
 
 }
