@@ -20,6 +20,7 @@ package dk.dbc.pgqueue.consumer;
 
 import com.codahale.metrics.MetricRegistry;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -34,7 +35,7 @@ import java.util.concurrent.ExecutorService;
 class Settings<T> {
 
     final List<String> consumerNames;
-    final QueueStorageAbstraction<T> storageAbstraction;
+    final QueueStorageAbstractionDequeue<T> storageAbstraction;
     final int maxTries;
     final long emptyQueueSleep;
     final long maxQueryTime;
@@ -44,8 +45,9 @@ class Settings<T> {
     final Throttle failureThrottle;
     final ExecutorService executor;
     final MetricRegistry metricRegistry;
+    final boolean skipDuplicateJobs;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
+    Settings(List<String> consumerNames, QueueStorageAbstractionDequeue<T> storageAbstraction, int maxTries, boolean skipDuplicateJobs, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
         this.maxTries = maxTries;
         this.emptyQueueSleep = emptyQueueSleep;
         this.maxQueryTime = maxQueryTime;
@@ -57,5 +59,6 @@ class Settings<T> {
         this.executor = executor;
         this.metricRegistry = metricRegistry;
         this.idleFullScanEvery = idleFullScanEvery;
+        this.skipDuplicateJobs = skipDuplicateJobs;
     }
 }

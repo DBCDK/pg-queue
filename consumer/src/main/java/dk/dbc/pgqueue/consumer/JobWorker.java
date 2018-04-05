@@ -47,6 +47,7 @@ class JobWorker<T> implements Runnable {
     private PreparedStatement retryStmt;
     private PreparedStatement postponeStmt;
     private PreparedStatement failedStmt;
+    private PreparedStatement deleteDuplicateStmt;
     private int fullScanCounter;
     private Thread self;
 
@@ -143,6 +144,16 @@ class JobWorker<T> implements Runnable {
         try {
             Savepoint savepoint = connection.setSavepoint();
             try {
+                if (harvester.settings.skipDuplicateJobs) {
+                    ResultSet resultSet = timedDeleteDuplicate(job);
+                    if (resultSet != null) {
+                        while (resultSet.next()) {
+                            JobWithMetaData skippedJob = new JobWithMetaData(resultSet, 1, harvester.settings.storageAbstraction);
+                            log.info("Skipping job: {}", skippedJob);
+                        }
+                    }
+                }
+
                 consumer.accept(connection, job.getActualJob(), job);
                 success = true;
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
@@ -265,6 +276,23 @@ class JobWorker<T> implements Runnable {
     private ResultSet timedSelect(String queueName, Timestamp timestamp) throws SQLException {
         PreparedStatement stmt = getSelectStmt(queueName, timestamp);
         try (Timer.Context time = harvester.dequeueTimer.time()) {
+            return stmt.executeQuery();
+        }
+    }
+
+    /**
+     * Wrap a delete duplicate in a timer
+     *
+     * @param job job to delete duplicates of
+     * @return result set
+     * @throws SQLException from database errors
+     */
+    private ResultSet timedDeleteDuplicate(JobWithMetaData<T> job) throws SQLException {
+        PreparedStatement stmt = getDeleteDuplicateStmt(job);
+        if (stmt == null) {
+            return null;
+        }
+        try (Timer.Context time = harvester.deleteDuplicateTimer.time()) {
             return stmt.executeQuery();
         }
     }
@@ -430,7 +458,7 @@ class JobWorker<T> implements Runnable {
         if (timestampStmt == null) {
             timestampStmt = connection.prepareStatement(Harvester.SqlQueueTimestamp.SQL);
         }
-        timestampStmt.setString(Harvester.SqlQueueTimestamp.QUEUE_POS, queue);
+        timestampStmt.setString(Harvester.SqlQueueTimestamp.CONSUMER_POS, queue);
         return timestampStmt;
     }
 
@@ -459,7 +487,7 @@ class JobWorker<T> implements Runnable {
         if (selectStmt == null) {
             selectStmt = connection.prepareStatement(harvester.getSelectSql());
         }
-        selectStmt.setString(Harvester.SqlSelect.QUEUE_POS, queue);
+        selectStmt.setString(Harvester.SqlSelect.CONSUMER_POS, queue);
         selectStmt.setTimestamp(Harvester.SqlSelect.TIMESTAMP_POS, timestamp);
         return selectStmt;
     }
@@ -516,7 +544,26 @@ class JobWorker<T> implements Runnable {
         failedStmt.setTimestamp(Harvester.SqlFailed.QUEUED_POS, job.getQueued());
         failedStmt.setString(Harvester.SqlFailed.DIAG_POS, diag);
         return failedStmt;
+    }
 
+    /**
+     * Delete duplicate jobs
+     *
+     * @param job job to match
+     * @return sql statement
+     * @throws SQLException for database errors
+     */
+    private PreparedStatement getDeleteDuplicateStmt(JobWithMetaData<T> job) throws SQLException {
+        if (deleteDuplicateStmt == null) {
+            if (harvester.getDeleteDuplicateSql() == null) {
+                return null;
+            }
+            deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
+        }
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS, job.getConsumer());
+        harvester.settings.storageAbstraction
+                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicate.DUPLICATE_POS);
+        return deleteDuplicateStmt;
     }
 
     @FunctionalInterface

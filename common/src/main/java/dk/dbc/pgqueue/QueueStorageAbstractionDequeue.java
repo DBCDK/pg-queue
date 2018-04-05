@@ -29,33 +29,20 @@ import java.sql.SQLException;
  *
  * @param <T> type of job
  */
-public interface QueueStorageAbstraction<T> {
+public interface QueueStorageAbstractionDequeue<T> extends QueueStorageAbstraction<T> {
 
     /**
-     * Return a (static) list of columns, in the order the other methods expect
-     * them (createJob and saveJob).
+     * Return a (static) list of columns, in the order the other duplicate
+     * values expect them.
      *
-     * @return list of column names
+     * @return null if duplicate skipping is disabled
      */
-    String[] columnList();
+    String[] duplicateDeleteColumnList();
 
     /**
-     * Convert a result set, that includes the columns listed in
-     * {@link #columnList()} starting a a give position.
+     * Fill in values to delete duplicate columns
      * <p>
-     * Only used in a dequeue context
-     *
-     * @param resultSet   data from the database
-     * @param startColumn position of first job column in the dataset
-     * @return new object of job type
-     * @throws SQLException in case of communication errors
-     */
-    T createJob(ResultSet resultSet, int startColumn) throws SQLException;
-
-    /**
-     * Save a job to a database table
-     * <p>
-     * Used both in enqueue and dequeue (queue_error) context
+     * Used only in dequeue context
      *
      * @param job         The job to be persisted
      * @param stmt        the statement what points out the columns listed in
@@ -63,6 +50,6 @@ public interface QueueStorageAbstraction<T> {
      * @param startColumn position of first job column in the insert expression
      * @throws SQLException in case of errors with the statement
      */
-    void saveJob(T job, PreparedStatement stmt, int startColumn) throws SQLException;
+    void duplicateValues(T job, PreparedStatement stmt, int startColumn) throws SQLException;
 
 }

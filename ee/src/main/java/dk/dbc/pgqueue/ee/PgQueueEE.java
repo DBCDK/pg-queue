@@ -20,6 +20,7 @@ package dk.dbc.pgqueue.ee;
 
 import com.codahale.metrics.MetricRegistry;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
 import dk.dbc.pgqueue.consumer.JobConsumer;
 import dk.dbc.pgqueue.consumer.QueueWorker;
 import java.util.Collection;
@@ -96,7 +97,7 @@ public abstract class PgQueueEE<T> {
      *
      * @return storage abstraction
      */
-    public abstract QueueStorageAbstraction<T> getStorageAbstraction();
+    public abstract QueueStorageAbstractionDequeue<T> getStorageAbstraction();
 
     /**
      * Produce a number of job consumers

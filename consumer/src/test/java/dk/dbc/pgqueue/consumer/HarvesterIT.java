@@ -18,9 +18,9 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.QueueStorageAbstraction;
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
 import dk.dbc.pgqueue.DatabaseMigrator;
+import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -205,6 +205,46 @@ public class HarvesterIT {
         assertEquals(Arrays.asList("0".split(",")), failedJobs());
     }
 
+    @Test(timeout = 5_000L)
+    public void testDeduplication() throws Exception {
+        System.out.println("testDeduplication");
+        ArrayList<String> jobs = new ArrayList<>();
+
+        JobConsumer<String> consumer = (JobConsumer<String>) (Connection c, String job, JobMetaData metaData) -> {
+            System.out.println("job = " + job + "; meta = " + metaData);
+            synchronized (jobs) {
+                jobs.add(job);
+                jobs.notifyAll();
+            }
+        };
+        QueueWorker queueWorker = QueueWorker.builder()
+                .dataSource(dataSource)
+                .emptyQueueSleep(200)
+                .maxTries(2)
+                .consume("foo", "bar")
+                .skipDuplicateJobs(true)
+                .build(STORAGE_ABSTRACTION, consumer);
+
+        queue("foo", "1", "1", "1", "1", "2", "2", "2"); // collapse into 2 processings
+        queuePostponed("foo", 60, "1", "3"); // Ensure this isn't consumed (not ready for dequeue)
+        queueWorker.start();
+        synchronized (jobs) {
+            while (jobs.size() != 2) {
+                jobs.wait();
+                System.out.println("jobs = " + jobs);
+            }
+        }
+        queueWorker.stop();
+        queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
+
+        System.out.println("jobs = " + jobs);
+        ArrayList<String> remainingJobs = queueRemainingJobs("foo");
+        System.out.println("remainingJobs = " + remainingJobs);
+
+        assertEquals(Arrays.asList("1,2".split(",")), jobs);
+        assertEquals(Arrays.asList("1,3".split(",")), remainingJobs);
+    }
+
     private void queue(String queueName, String... jobs) throws SQLException {
         try (Connection connection = dataSource.getConnection() ;
              PreparedStatement stmt = connection.prepareStatement("INSERT INTO queue(consumer, job) VALUES(?, ?)")) {
@@ -214,6 +254,32 @@ public class HarvesterIT {
                 stmt.executeUpdate();
             }
         }
+    }
+
+    private void queuePostponed(String queueName, int timeout, String... jobs) throws SQLException {
+        try (Connection connection = dataSource.getConnection() ;
+             PreparedStatement stmt = connection.prepareStatement("INSERT INTO queue(consumer, dequeueAfter, job) VALUES(?, now() + ? * INTERVAL '1 seconds', ?)")) {
+            stmt.setString(1, queueName);
+            stmt.setInt(2, timeout);
+            for (String job : jobs) {
+                stmt.setString(3, job);
+                stmt.executeUpdate();
+            }
+        }
+    }
+
+    private ArrayList<String> queueRemainingJobs(String queueName) throws SQLException {
+        ArrayList<String> ret = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection() ;
+             PreparedStatement stmt = connection.prepareStatement("SELECT job FROM queue WHERE consumer = ?")) {
+            stmt.setString(1, queueName);
+            try (ResultSet resultSet = stmt.executeQuery()) {
+                while (resultSet.next()) {
+                    ret.add(resultSet.getString(1));
+                }
+            }
+        }
+        return ret;
     }
 
     private List<String> failedJobs() throws SQLException {
@@ -228,7 +294,7 @@ public class HarvesterIT {
         return res;
     }
 
-    private static final QueueStorageAbstraction<String> STORAGE_ABSTRACTION = new QueueStorageAbstraction<String>() {
+    private static final QueueStorageAbstractionDequeue<String> STORAGE_ABSTRACTION = new QueueStorageAbstractionDequeue<String>() {
         String[] COLUMNS = new String[] {"job"};
 
         @Override
@@ -243,6 +309,16 @@ public class HarvesterIT {
 
         @Override
         public void saveJob(String job, PreparedStatement stmt, int startColumn) throws SQLException {
+            stmt.setString(startColumn, job);
+        }
+
+        @Override
+        public String[] duplicateDeleteColumnList() {
+            return COLUMNS;
+        }
+
+        @Override
+        public void duplicateValues(String job, PreparedStatement stmt, int startColumn) throws SQLException {
             stmt.setString(startColumn, job);
         }
     };

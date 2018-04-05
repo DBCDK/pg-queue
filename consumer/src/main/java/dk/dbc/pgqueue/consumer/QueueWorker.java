@@ -19,7 +19,7 @@
 package dk.dbc.pgqueue.consumer;
 
 import com.codahale.metrics.MetricRegistry;
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -75,6 +75,7 @@ public interface QueueWorker {
         private String failureThrottle = null;
         private ExecutorService executor = null;
         private MetricRegistry metricRegistry = null;
+        private Boolean skipDuplicateJobs = null;
 
         private Builder() {
         }
@@ -113,6 +114,17 @@ public interface QueueWorker {
          */
         public Builder maxTries(int maxTries) {
             this.maxTries = setOrFail(this.maxTries, maxTries, "maxTries");
+            return this;
+        }
+
+        /**
+         * Set whether de duplication of jobs should occur
+         *
+         * @param skipDuplicateJobs If similar jobs should be slipped
+         * @return self
+         */
+        public Builder skipDuplicateJobs(boolean skipDuplicateJobs) {
+            this.skipDuplicateJobs = setOrFail(this.skipDuplicateJobs, skipDuplicateJobs, "skipDuplicateJobs");
             return this;
         }
 
@@ -221,7 +233,7 @@ public interface QueueWorker {
          * @param consumerSupplier   how to construct a consumer
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstraction<T> storageAbstraction, int n, Supplier<JobConsumer<T>> consumerSupplier) {
+        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, int n, Supplier<JobConsumer<T>> consumerSupplier) {
             Collection<JobConsumer<T>> consumers = new ArrayList<>();
             for (int i = 0 ; i < n ; i++) {
                 consumers.add(consumerSupplier.get());
@@ -238,7 +250,7 @@ public interface QueueWorker {
          * @param consumer           consumer instance
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstraction<T> storageAbstraction, int n, JobConsumer<T> consumer) {
+        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, int n, JobConsumer<T> consumer) {
             return build(storageAbstraction, n, () -> consumer);
         }
 
@@ -250,7 +262,7 @@ public interface QueueWorker {
          * @param consumers          consumer instances
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstraction<T> storageAbstraction, JobConsumer<T>... consumers) {
+        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, JobConsumer<T>... consumers) {
             return build(storageAbstraction, Arrays.asList(consumers));
         }
 
@@ -262,7 +274,7 @@ public interface QueueWorker {
          * @param consumers          consumer instances
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstraction<T> storageAbstraction, Collection<JobConsumer<T>> consumers) {
+        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, Collection<JobConsumer<T>> consumers) {
             if (executor == null) {
                 executor = Executors.newFixedThreadPool(consumers.size());
             }
@@ -275,6 +287,7 @@ public interface QueueWorker {
             Settings config = new Settings(required(consumerNames, "queueNames should be set"),
                                            storageAbstraction,
                                            or(maxTries, 3),
+                                           or(skipDuplicateJobs, false),
                                            or(emptyQueueSleep, 10_000L),
                                            or(maxQueryTime, 50L),
                                            or(rescanEvery, 100),
