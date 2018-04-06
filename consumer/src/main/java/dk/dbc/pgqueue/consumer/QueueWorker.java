@@ -284,6 +284,9 @@ public interface QueueWorker {
             if (consumers.isEmpty()) {
                 throw new IllegalArgumentException("No consumer is supplied");
             }
+            if(or(skipDuplicateJobs, false) && storageAbstraction.duplicateDeleteColumnList() == null) {
+                throw new IllegalStateException("Cannot enable skipDuplicateJobs, Storage abstraction doen't support it");
+            }
             Settings config = new Settings(required(consumerNames, "queueNames should be set"),
                                            storageAbstraction,
                                            or(maxTries, 3),
