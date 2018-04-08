@@ -34,6 +34,8 @@ public interface QueueStorageAbstractionDequeue<T> extends QueueStorageAbstracti
     /**
      * Return a (static) list of columns, in the order the other duplicate
      * values expect them.
+     * <p>
+     * Remember to create an index on the columns listed
      *
      * @return null if duplicate skipping is disabled
      */
