@@ -243,12 +243,11 @@ public interface QueueWorker {
         /**
          * Construct a QueueWorker
          *
-         * @param <T>              Job type
          * @param n                number of consumers
          * @param consumerSupplier how to construct a consumer
          * @return queue worker
          */
-        public <T> QueueWorker build(int n, Supplier<JobConsumer<T>> consumerSupplier) {
+        public QueueWorker build(int n, Supplier<JobConsumer<T>> consumerSupplier) {
             Collection<JobConsumer<T>> consumers = new ArrayList<>();
             for (int i = 0 ; i < n ; i++) {
                 consumers.add(consumerSupplier.get());
@@ -259,34 +258,31 @@ public interface QueueWorker {
         /**
          * Construct a QueueWorker
          *
-         * @param <T>      Job type
          * @param n        number of consumers
          * @param consumer consumer instance
          * @return queue worker
          */
-        public <T> QueueWorker build(int n, JobConsumer<T> consumer) {
+        public QueueWorker build(int n, JobConsumer<T> consumer) {
             return build(n, () -> consumer);
         }
 
         /**
          * Construct a QueueWorker
          *
-         * @param <T>       Job type
          * @param consumers consumer instances
          * @return queue worker
          */
-        public <T> QueueWorker build(JobConsumer<T>... consumers) {
+        public QueueWorker build(JobConsumer<T>... consumers) {
             return build(Arrays.asList(consumers));
         }
 
         /**
          * Construct a QueueWorker
          *
-         * @param <T>       Job type
          * @param consumers consumer instances
          * @return queue worker
          */
-        public <T> QueueWorker build(Collection<JobConsumer<T>> consumers) {
+        public QueueWorker build(Collection<JobConsumer<T>> consumers) {
             if (executor == null) {
                 executor = Executors.newFixedThreadPool(consumers.size());
             }
