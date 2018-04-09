@@ -33,7 +33,6 @@ public interface DeduplicateAbstraction<T> {
     /**
      * Return a (static) list of columns, in the order the other duplicate
      * values expect them.
-     * <p>
      * <ul>
      * <li> Remember to create an index on the columns listed
      * <li> Null value columns are not supported
