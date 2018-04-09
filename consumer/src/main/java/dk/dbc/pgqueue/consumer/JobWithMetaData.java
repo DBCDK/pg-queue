@@ -24,7 +24,7 @@ import java.sql.SQLException;
 
 /**
  * Queue job container
- *
+ * <p>
  * Wraps a queue job, and has metadata about it
  *
  * @author DBC {@literal <dbc.dk>}
@@ -33,7 +33,7 @@ import java.sql.SQLException;
  */
 class JobWithMetaData<T> extends JobMetaData {
 
-    private  T job;
+    private T job;
 
     /**
      * Construct a job with metadata from a database row
@@ -60,8 +60,5 @@ class JobWithMetaData<T> extends JobMetaData {
     void setActualJob(T job) {
         this.job = job;
     }
-
-
-
 
 }
