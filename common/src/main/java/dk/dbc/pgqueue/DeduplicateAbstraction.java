@@ -49,7 +49,7 @@ public interface DeduplicateAbstraction<T> {
      *
      * @param job         The job to be persisted
      * @param stmt        the statement what points out the columns listed in
-     *                    {@link #columnList()}
+     *                    {@link #duplicateDeleteColumnList() ()}
      * @param startColumn position of first job column in the insert expression
      * @throws SQLException in case of errors with the statement
      */

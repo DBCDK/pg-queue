@@ -136,7 +136,7 @@ public interface QueueWorker {
         /**
          * Set whether de duplication of jobs should occur
          *
-         * @param deduplicateAbstraction
+         * @param deduplicateAbstraction definition of what a duplicate job is
          * @return self
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
