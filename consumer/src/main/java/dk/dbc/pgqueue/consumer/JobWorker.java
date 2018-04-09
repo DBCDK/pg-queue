@@ -144,11 +144,14 @@ class JobWorker<T> implements Runnable {
         try {
             Savepoint savepoint = connection.setSavepoint();
             try {
-                if (harvester.settings.skipDuplicateJobs) {
+                if (harvester.settings.deduplicateAbstraction != null) {
                     ResultSet resultSet = timedDeleteDuplicate(job);
                     if (resultSet != null) {
                         while (resultSet.next()) {
-                            JobWithMetaData skippedJob = new JobWithMetaData(resultSet, 1, harvester.settings.storageAbstraction);
+                            JobWithMetaData<T> skippedJob = new JobWithMetaData<>(resultSet, 1, harvester.settings.storageAbstraction);
+                            T actualJob = harvester.settings.deduplicateAbstraction
+                                    .mergeJob(job.getActualJob(), skippedJob.getActualJob());
+                            job.setActualJob(actualJob);
                             log.info("Skipping job: {}", skippedJob);
                         }
                     }
@@ -561,7 +564,7 @@ class JobWorker<T> implements Runnable {
             deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
         }
         deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS, job.getConsumer());
-        harvester.settings.storageAbstraction
+        harvester.settings.deduplicateAbstraction
                 .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicate.DUPLICATE_POS);
         return deleteDuplicateStmt;
     }

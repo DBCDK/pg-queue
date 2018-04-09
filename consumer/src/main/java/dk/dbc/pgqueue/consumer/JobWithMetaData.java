@@ -18,7 +18,7 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
+import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -33,7 +33,7 @@ import java.sql.SQLException;
  */
 class JobWithMetaData<T> extends JobMetaData {
 
-    private final T job;
+    private  T job;
 
     /**
      * Construct a job with metadata from a database row
@@ -43,7 +43,7 @@ class JobWithMetaData<T> extends JobMetaData {
      * @param abstraction how to convert the row to a job
      * @throws SQLException in case of communication errors with the database
      */
-    JobWithMetaData(ResultSet resultSet, int column, QueueStorageAbstractionDequeue<T> abstraction) throws SQLException {
+    JobWithMetaData(ResultSet resultSet, int column, QueueStorageAbstraction<T> abstraction) throws SQLException {
         super(resultSet, column);
         job = abstraction.createJob(resultSet, column + JobMetaData.COLUMN_COUNT);
     }
@@ -56,5 +56,12 @@ class JobWithMetaData<T> extends JobMetaData {
     T getActualJob() {
         return job;
     }
+
+    void setActualJob(T job) {
+        this.job = job;
+    }
+
+
+
 
 }

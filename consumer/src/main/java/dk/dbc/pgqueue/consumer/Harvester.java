@@ -142,10 +142,10 @@ class Harvester<T> implements QueueWorker {
         this.retrySql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.RETRY_PLACEHOLDER, jobSqlPlaceholders);
         this.postponeSql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.POSTPONED_PLACEHOLDER, jobSqlPlaceholders);
         this.failedSql = String.format(SqlFailed.SQL, jobColumns, jobSqlPlaceholders);
-        String[] duplicateDeleteColumns = config.storageAbstraction.duplicateDeleteColumnList();
-        if (duplicateDeleteColumns == null) {
+        if (config.deduplicateAbstraction == null) {
             this.deleteDuplicateSql = null;
         } else {
+            String[] duplicateDeleteColumns = config.deduplicateAbstraction.duplicateDeleteColumnList();
             String whereClause = Arrays.stream(duplicateDeleteColumns)
                     .map(s -> s + "=?")
                     .collect(Collectors.joining(" AND "));

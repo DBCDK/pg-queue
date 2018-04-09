@@ -20,7 +20,7 @@ package dk.dbc.pgqueue.consumer;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
 import dk.dbc.pgqueue.DatabaseMigrator;
-import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
+import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,6 +34,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
+
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 
 /**
  *
@@ -64,12 +66,12 @@ public class HarvesterIT {
                 jobs.notifyAll();
             }
         };
-        QueueWorker queueWorker = QueueWorker.builder()
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
                 .dataSource(dataSource)
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
-                .build(STORAGE_ABSTRACTION, consumer);
+                .build(consumer);
 
         queue("foo", "0", "1", "2", "3", "4");
         queue("bar", "a", "b", "c", "d", "e");
@@ -104,12 +106,12 @@ public class HarvesterIT {
                 }
             }
         };
-        QueueWorker queueWorker = QueueWorker.builder()
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
                 .dataSource(dataSource)
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
-                .build(STORAGE_ABSTRACTION, consumer);
+                .build(consumer);
 
         queue("foo", "0", "1", "2", "3", "4");
         queueWorker.start();
@@ -142,12 +144,12 @@ public class HarvesterIT {
                 }
             }
         };
-        QueueWorker queueWorker = QueueWorker.builder()
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
                 .dataSource(dataSource)
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
-                .build(STORAGE_ABSTRACTION, consumer);
+                .build(consumer);
 
         queue("foo", "0", "1");
         queueWorker.start();
@@ -182,12 +184,12 @@ public class HarvesterIT {
                 }
             }
         };
-        QueueWorker queueWorker = QueueWorker.builder()
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
                 .dataSource(dataSource)
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
-                .build(STORAGE_ABSTRACTION, consumer);
+                .build(consumer);
 
         queue("foo", "0", "1");
         queueWorker.start();
@@ -217,13 +219,13 @@ public class HarvesterIT {
                 jobs.notifyAll();
             }
         };
-        QueueWorker queueWorker = QueueWorker.builder()
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
                 .dataSource(dataSource)
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
-                .skipDuplicateJobs(true)
-                .build(STORAGE_ABSTRACTION, consumer);
+                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION)
+                .build(consumer);
 
         queue("foo", "1", "1", "1", "1", "2", "2", "2"); // collapse into 2 processings
         queuePostponed("foo", 60, "1", "3"); // Ensure this isn't consumed (not ready for dequeue)
@@ -294,7 +296,7 @@ public class HarvesterIT {
         return res;
     }
 
-    private static final QueueStorageAbstractionDequeue<String> STORAGE_ABSTRACTION = new QueueStorageAbstractionDequeue<String>() {
+    private static final QueueStorageAbstraction<String> STORAGE_ABSTRACTION = new QueueStorageAbstraction<String>() {
         String[] COLUMNS = new String[] {"job"};
 
         @Override
@@ -311,6 +313,9 @@ public class HarvesterIT {
         public void saveJob(String job, PreparedStatement stmt, int startColumn) throws SQLException {
             stmt.setString(startColumn, job);
         }
+    };
+    private static final DeduplicateAbstraction<String> DEDUPLICATE_ABSTRACTION = new DeduplicateAbstraction<String>() {
+        String[] COLUMNS = new String[] {"job"};
 
         @Override
         public String[] duplicateDeleteColumnList() {
@@ -320,6 +325,12 @@ public class HarvesterIT {
         @Override
         public void duplicateValues(String job, PreparedStatement stmt, int startColumn) throws SQLException {
             stmt.setString(startColumn, job);
+        }
+
+        @Override
+        public String mergeJob(String originalJob, String skippedJob) {
+            System.out.println("skippedJob = " + skippedJob);
+            return originalJob;
         }
     };
 

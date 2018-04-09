@@ -19,25 +19,27 @@
 package dk.dbc.pgqueue;
 
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Class made for mapping a job structure to and from a database table
+ * Class for collapsing multiple jobs into one
  *
  * @author DBC {@literal <dbc.dk>}
  *
  * @param <T> type of job
  */
-public interface QueueStorageAbstractionDequeue<T> extends QueueStorageAbstraction<T> {
+public interface DeduplicateAbstraction<T> {
 
     /**
      * Return a (static) list of columns, in the order the other duplicate
      * values expect them.
      * <p>
-     * Remember to create an index on the columns listed
+     * <ul>
+     * <li> Remember to create an index on the columns listed
+     * <li> Null value columns are not supported
+     * </ul>
      *
-     * @return null if duplicate skipping is disabled
+     * @return List of column names
      */
     String[] duplicateDeleteColumnList();
 
@@ -54,4 +56,14 @@ public interface QueueStorageAbstractionDequeue<T> extends QueueStorageAbstracti
      */
     void duplicateValues(T job, PreparedStatement stmt, int startColumn) throws SQLException;
 
+    /**
+     * Merge the original job and the skipped job.
+     * <p>
+     * Useful if accumulation of a tracking id is needed
+     *
+     * @param originalJob The job that is chosen to be run
+     * @param skippedJob The job chosen to be skipped
+     * @return the new job that should be run (usually originalJob)
+     */
+    T mergeJob(T originalJob, T skippedJob);
 }

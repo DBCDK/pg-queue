@@ -19,7 +19,7 @@
 package dk.dbc.pgqueue.consumer;
 
 import com.codahale.metrics.MetricRegistry;
-import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
+import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 
 /**
  *
@@ -59,25 +60,40 @@ public interface QueueWorker {
 
     /**
      * Builder method for QueueWorker instance
+     * @param <T> Job type
      */
-    class Builder {
+    class Builder<T> {
 
         private static final Logger log = LoggerFactory.getLogger(Builder.class);
 
-        private Integer maxTries = null;
-        private Long emptyQueueSleep = null;
-        private Long maxQueryTime = null;
-        private Integer rescanEvery = null;
-        private Integer idleRescanEvery = null;
-        private List<String> consumerNames = null;
-        private DataSource dataSource = null;
-        private String databaseConnectThrottle = null;
-        private String failureThrottle = null;
-        private ExecutorService executor = null;
-        private MetricRegistry metricRegistry = null;
-        private Boolean skipDuplicateJobs = null;
+        private final QueueStorageAbstraction<T> storageAbstraction;
+        private Integer maxTries;
+        private Long emptyQueueSleep;
+        private Long maxQueryTime;
+        private Integer rescanEvery;
+        private Integer idleRescanEvery;
+        private List<String> consumerNames;
+        private DataSource dataSource;
+        private String databaseConnectThrottle;
+        private String failureThrottle;
+        private ExecutorService executor;
+        private MetricRegistry metricRegistry;
+        private DeduplicateAbstraction<T> deduplicateAbstraction;
 
-        private Builder() {
+        private Builder(QueueStorageAbstraction<T> storageAbstraction) {
+            this.storageAbstraction = storageAbstraction;
+            this.maxTries = null;
+            this.emptyQueueSleep = null;
+            this.maxQueryTime = null;
+            this.rescanEvery = null;
+            this.idleRescanEvery = null;
+            this.consumerNames = null;
+            this.dataSource = null;
+            this.databaseConnectThrottle = null;
+            this.failureThrottle = null;
+            this.executor = null;
+            this.metricRegistry = null;
+            this.deduplicateAbstraction = null;
         }
 
         /**
@@ -89,7 +105,7 @@ public interface QueueWorker {
          * @param names list of consumer names
          * @return self
          */
-        public Builder consume(String... names) {
+        public Builder<T> consume(String... names) {
             this.consumerNames = setOrFail(this.consumerNames, Arrays.asList(names), "queueNames");
             return this;
         }
@@ -100,7 +116,7 @@ public interface QueueWorker {
          * @param dataSource where to acquire database connections
          * @return self
          */
-        public Builder dataSource(DataSource dataSource) {
+        public Builder<T> dataSource(DataSource dataSource) {
             this.dataSource = setOrFail(this.dataSource, dataSource, "dataSource");
             return this;
         }
@@ -112,7 +128,7 @@ public interface QueueWorker {
          *                 job
          * @return self
          */
-        public Builder maxTries(int maxTries) {
+        public Builder<T> maxTries(int maxTries) {
             this.maxTries = setOrFail(this.maxTries, maxTries, "maxTries");
             return this;
         }
@@ -120,11 +136,11 @@ public interface QueueWorker {
         /**
          * Set whether de duplication of jobs should occur
          *
-         * @param skipDuplicateJobs If similar jobs should be slipped
+         * @param deduplicateAbstraction
          * @return self
          */
-        public Builder skipDuplicateJobs(boolean skipDuplicateJobs) {
-            this.skipDuplicateJobs = setOrFail(this.skipDuplicateJobs, skipDuplicateJobs, "skipDuplicateJobs");
+        public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
+            this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
             return this;
         }
 
@@ -134,7 +150,7 @@ public interface QueueWorker {
          * @param emptyQueueSleep number of milliseconds
          * @return self
          */
-        public Builder emptyQueueSleep(long emptyQueueSleep) {
+        public Builder<T> emptyQueueSleep(long emptyQueueSleep) {
             this.emptyQueueSleep = setOrFail(this.emptyQueueSleep, emptyQueueSleep, "emptyQueueSleep");
             return this;
         }
@@ -146,7 +162,7 @@ public interface QueueWorker {
          * @param maxQueryTime number of milliseconds
          * @return self
          */
-        public Builder maxQueryTime(long maxQueryTime) {
+        public Builder<T> maxQueryTime(long maxQueryTime) {
             this.maxQueryTime = setOrFail(this.maxQueryTime, maxQueryTime, "maxQueryTime");
             return this;
         }
@@ -157,7 +173,7 @@ public interface QueueWorker {
          * @param rescanEvery every n queries rescan for earliest in queue
          * @return self
          */
-        public Builder rescanEvery(int rescanEvery) {
+        public Builder<T> rescanEvery(int rescanEvery) {
             this.rescanEvery = setOrFail(this.rescanEvery, rescanEvery, "rescanEvery");
             return this;
         }
@@ -171,7 +187,7 @@ public interface QueueWorker {
          *                        timestamp
          * @return self
          */
-        public Builder idleRescanEvery(int idleRescanEvery) {
+        public Builder<T> idleRescanEvery(int idleRescanEvery) {
             this.idleRescanEvery = setOrFail(this.idleRescanEvery, this.idleRescanEvery, "rescanEvery");
             return this;
         }
@@ -183,7 +199,7 @@ public interface QueueWorker {
          * @param databaseConnectThrottle throttle spec
          * @return self
          */
-        public Builder databaseConnectThrottle(String databaseConnectThrottle) {
+        public Builder<T> databaseConnectThrottle(String databaseConnectThrottle) {
             this.databaseConnectThrottle = setOrFail(this.databaseConnectThrottle, databaseConnectThrottle, "databaseConnectThrottle");
             return this;
         }
@@ -194,7 +210,7 @@ public interface QueueWorker {
          * @param failureThrottle throttle spec
          * @return self
          */
-        public Builder failureThrottle(String failureThrottle) {
+        public Builder<T> failureThrottle(String failureThrottle) {
             this.failureThrottle = setOrFail(this.failureThrottle, failureThrottle, "failureThrottle");
             return this;
         }
@@ -208,7 +224,7 @@ public interface QueueWorker {
          * @param executor the executor to run in
          * @return self
          */
-        public Builder executor(ExecutorService executor) {
+        public Builder<T> executor(ExecutorService executor) {
             this.executor = setOrFail(this.executor, executor, "executor");
             return this;
         }
@@ -219,7 +235,7 @@ public interface QueueWorker {
          * @param metricRegistry the registry
          * @return self
          */
-        public Builder metricRegistry(MetricRegistry metricRegistry) {
+        public Builder<T> metricRegistry(MetricRegistry metricRegistry) {
             this.metricRegistry = setOrFail(this.metricRegistry, metricRegistry, "metricsRegistry");
             return this;
         }
@@ -227,54 +243,50 @@ public interface QueueWorker {
         /**
          * Construct a QueueWorker
          *
-         * @param <T>                Job type
-         * @param storageAbstraction database/job converter
-         * @param n                  number of consumers
-         * @param consumerSupplier   how to construct a consumer
+         * @param <T>              Job type
+         * @param n                number of consumers
+         * @param consumerSupplier how to construct a consumer
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, int n, Supplier<JobConsumer<T>> consumerSupplier) {
+        public <T> QueueWorker build(int n, Supplier<JobConsumer<T>> consumerSupplier) {
             Collection<JobConsumer<T>> consumers = new ArrayList<>();
             for (int i = 0 ; i < n ; i++) {
                 consumers.add(consumerSupplier.get());
             }
-            return build(storageAbstraction, consumers);
+            return build(consumers);
         }
 
         /**
          * Construct a QueueWorker
          *
-         * @param <T>                Job type
-         * @param storageAbstraction database/job converter
-         * @param n                  number of consumers
-         * @param consumer           consumer instance
+         * @param <T>      Job type
+         * @param n        number of consumers
+         * @param consumer consumer instance
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, int n, JobConsumer<T> consumer) {
-            return build(storageAbstraction, n, () -> consumer);
+        public <T> QueueWorker build(int n, JobConsumer<T> consumer) {
+            return build(n, () -> consumer);
         }
 
         /**
          * Construct a QueueWorker
          *
-         * @param <T>                Job type
-         * @param storageAbstraction database/job converter
-         * @param consumers          consumer instances
+         * @param <T>       Job type
+         * @param consumers consumer instances
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, JobConsumer<T>... consumers) {
-            return build(storageAbstraction, Arrays.asList(consumers));
+        public <T> QueueWorker build(JobConsumer<T>... consumers) {
+            return build(Arrays.asList(consumers));
         }
 
         /**
          * Construct a QueueWorker
          *
-         * @param <T>                Job type
-         * @param storageAbstraction database/job converter
-         * @param consumers          consumer instances
+         * @param <T>       Job type
+         * @param consumers consumer instances
          * @return queue worker
          */
-        public <T> QueueWorker build(QueueStorageAbstractionDequeue<T> storageAbstraction, Collection<JobConsumer<T>> consumers) {
+        public <T> QueueWorker build(Collection<JobConsumer<T>> consumers) {
             if (executor == null) {
                 executor = Executors.newFixedThreadPool(consumers.size());
             }
@@ -284,13 +296,10 @@ public interface QueueWorker {
             if (consumers.isEmpty()) {
                 throw new IllegalArgumentException("No consumer is supplied");
             }
-            if(or(skipDuplicateJobs, false) && storageAbstraction.duplicateDeleteColumnList() == null) {
-                throw new IllegalStateException("Cannot enable skipDuplicateJobs, Storage abstraction doen't support it");
-            }
             Settings config = new Settings(required(consumerNames, "queueNames should be set"),
                                            storageAbstraction,
+                                           deduplicateAbstraction,
                                            or(maxTries, 3),
-                                           or(skipDuplicateJobs, false),
                                            or(emptyQueueSleep, 10_000L),
                                            or(maxQueryTime, 50L),
                                            or(rescanEvery, 100),
@@ -330,9 +339,11 @@ public interface QueueWorker {
     /**
      * Construct a builder
      *
+     * @param <T>                Job type
+     * @param storageAbstraction database/job converter
      * @return a builder
      */
-    static Builder builder() {
-        return new Builder();
+    static <T> Builder<T> builder(QueueStorageAbstraction<T> storageAbstraction) {
+        return new Builder(storageAbstraction);
     }
 }

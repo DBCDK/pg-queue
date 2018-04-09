@@ -20,10 +20,10 @@ package dk.dbc.pgqueue.consumer;
 
 import com.codahale.metrics.MetricRegistry;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
-import dk.dbc.pgqueue.QueueStorageAbstractionDequeue;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 
 /**
  * This is a storage class for configuration, shared among harvester and
@@ -35,7 +35,8 @@ import java.util.concurrent.ExecutorService;
 class Settings<T> {
 
     final List<String> consumerNames;
-    final QueueStorageAbstractionDequeue<T> storageAbstraction;
+    final QueueStorageAbstraction<T> storageAbstraction;
+    final DeduplicateAbstraction<T> deduplicateAbstraction;
     final int maxTries;
     final long emptyQueueSleep;
     final long maxQueryTime;
@@ -45,20 +46,19 @@ class Settings<T> {
     final Throttle failureThrottle;
     final ExecutorService executor;
     final MetricRegistry metricRegistry;
-    final boolean skipDuplicateJobs;
 
-    Settings(List<String> consumerNames, QueueStorageAbstractionDequeue<T> storageAbstraction, int maxTries, boolean skipDuplicateJobs, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
         this.maxTries = maxTries;
         this.emptyQueueSleep = emptyQueueSleep;
         this.maxQueryTime = maxQueryTime;
         this.consumerNames = Collections.unmodifiableList(consumerNames);
         this.storageAbstraction = storageAbstraction;
+        this.deduplicateAbstraction = deduplicateAbstraction;
         this.databaseConnectThrottle = databaseConnectThrottle;
         this.failureThrottle = failureThrottle;
         this.fullScanEvery = fullScanEvery;
         this.executor = executor;
         this.metricRegistry = metricRegistry;
         this.idleFullScanEvery = idleFullScanEvery;
-        this.skipDuplicateJobs = skipDuplicateJobs;
     }
 }
