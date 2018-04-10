@@ -23,6 +23,7 @@ import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 
 /**
  * This is a storage class for configuration, shared among harvester and
@@ -35,6 +36,7 @@ class Settings<T> {
 
     final List<String> consumerNames;
     final QueueStorageAbstraction<T> storageAbstraction;
+    final DeduplicateAbstraction<T> deduplicateAbstraction;
     final int maxTries;
     final long emptyQueueSleep;
     final long maxQueryTime;
@@ -45,12 +47,13 @@ class Settings<T> {
     final ExecutorService executor;
     final MetricRegistry metricRegistry;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
         this.maxTries = maxTries;
         this.emptyQueueSleep = emptyQueueSleep;
         this.maxQueryTime = maxQueryTime;
         this.consumerNames = Collections.unmodifiableList(consumerNames);
         this.storageAbstraction = storageAbstraction;
+        this.deduplicateAbstraction = deduplicateAbstraction;
         this.databaseConnectThrottle = databaseConnectThrottle;
         this.failureThrottle = failureThrottle;
         this.fullScanEvery = fullScanEvery;

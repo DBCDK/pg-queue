@@ -23,6 +23,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Timer;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +50,7 @@ class Harvester<T> implements QueueWorker {
                                   " AND dequeueAfter<=clock_timestamp()" +
                                   " ORDER BY consumer, dequeueAfter" + // hit existing index
                                   " LIMIT 1";
-        static final int QUEUE_POS = 1;
+        static final int CONSUMER_POS = 1;
     }
 
     static class SqlCurrentTimestamp {
@@ -68,9 +69,21 @@ class Harvester<T> implements QueueWorker {
                                           " FOR UPDATE SKIP LOCKED" +
                                           " LIMIT 1)" +
                                           " RETURNING " + JobMetaData.COLUMNS + ", %s";
-        static final int QUEUE_POS = 1;
+        static final int CONSUMER_POS = 1;
         static final int TIMESTAMP_POS = 2;
 
+    }
+
+    static class SqlDeleteDuplicate {
+
+        private static final String SQL = "DELETE" +
+                                          " FROM queue" +
+                                          " WHERE consumer=?" +
+                                          " AND dequeueAfter<=clock_timestamp()" +
+                                          " AND %s" +
+                                          " RETURNING " + JobMetaData.COLUMNS + ", %s";
+        static final int CONSUMER_POS = 1;
+        static final int DUPLICATE_POS = 2;
     }
 
     private static class SqlInsert {
@@ -98,9 +111,11 @@ class Harvester<T> implements QueueWorker {
     private final String retrySql;
     private final String postponeSql;
     private final String failedSql;
+    private final String deleteDuplicateSql;
 
     final Timer databaseconnectTimer;
     final Timer dequeueTimer;
+    final Timer deleteDuplicateTimer;
     final Timer retryTimer;
     final Timer postponeTimer;
     final Timer failureTimer;
@@ -127,9 +142,19 @@ class Harvester<T> implements QueueWorker {
         this.retrySql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.RETRY_PLACEHOLDER, jobSqlPlaceholders);
         this.postponeSql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.POSTPONED_PLACEHOLDER, jobSqlPlaceholders);
         this.failedSql = String.format(SqlFailed.SQL, jobColumns, jobSqlPlaceholders);
-
+        if (config.deduplicateAbstraction == null) {
+            this.deleteDuplicateSql = null;
+        } else {
+            String[] duplicateDeleteColumns = config.deduplicateAbstraction.duplicateDeleteColumnList();
+            String whereClause = Arrays.stream(duplicateDeleteColumns)
+                    .map(s -> s + "=?")
+                    .collect(Collectors.joining(" AND "));
+            this.deleteDuplicateSql = String.format(SqlDeleteDuplicate.SQL, whereClause, jobColumns);
+            System.out.println("deleteDuplicateSql = " + deleteDuplicateSql);
+        }
         this.databaseconnectTimer = makeTimer("databaseconnect");
         this.dequeueTimer = makeTimer("dequeue");
+        this.deleteDuplicateTimer = makeTimer("deleteDuplicate");
         this.retryTimer = makeTimer("retry");
         this.postponeTimer = makeTimer("postpone");
         this.failureTimer = makeTimer("failure");
@@ -250,6 +275,15 @@ class Harvester<T> implements QueueWorker {
      */
     String getFailedSql() {
         return failedSql;
+    }
+
+    /**
+     * Get the SQL statement for removing duplicate jobs
+     *
+     * @return SQL statement or null if duplicate job removal isn't enabled
+     */
+    String getDeleteDuplicateSql() {
+        return deleteDuplicateSql;
     }
 
     /**
