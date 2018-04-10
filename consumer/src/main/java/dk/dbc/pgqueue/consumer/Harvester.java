@@ -150,7 +150,6 @@ class Harvester<T> implements QueueWorker {
                     .map(s -> s + "=?")
                     .collect(Collectors.joining(" AND "));
             this.deleteDuplicateSql = String.format(SqlDeleteDuplicate.SQL, whereClause, jobColumns);
-            System.out.println("deleteDuplicateSql = " + deleteDuplicateSql);
         }
         this.databaseconnectTimer = makeTimer("databaseconnect");
         this.dequeueTimer = makeTimer("dequeue");
