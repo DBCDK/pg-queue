@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -71,9 +72,11 @@ public class QueueStatusBean {
      *                            collapsed
      * @param diagCollapseMaxRows how many diags to look at (at most) when
      *                            finding diag types
+     * @param ignoreQueues        set of queue names to ignore when getting max
+     *                            age
      * @return Response containing json structure
      */
-    public Response getQueueStatus(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows) {
+    public Response getQueueStatus(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues) {
         log.info("getQueueStatus called");
         try {
             synchronized (QUEUE_STATUS) {
@@ -98,8 +101,10 @@ public class QueueStatusBean {
                     QUEUE_STATUS.set("queue", queueNode);
                     int queueMaxAge = 0;
                     if (queueNode.isObject()) {
-                        for (JsonNode node : queueNode) {
-                            if (node.isObject() && node.has("age")) {
+                        for (Iterator<Map.Entry<String, JsonNode>> iterator = ( (ObjectNode) queueNode ).fields() ; iterator.hasNext() ;) {
+                            Map.Entry<String, JsonNode> queueEntry = iterator.next();
+                            if (!ignoreQueues.contains(queueEntry.getKey())) {
+                                JsonNode node = queueEntry.getValue();
                                 int age = node.get("age").asInt();
                                 queueMaxAge = Integer.max(queueMaxAge, age);
                             }
