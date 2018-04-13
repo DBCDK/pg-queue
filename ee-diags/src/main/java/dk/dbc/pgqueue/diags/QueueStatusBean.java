@@ -68,6 +68,10 @@ public class QueueStatusBean {
      *
      * @param dataSource          Where to get the database connections from
      *                            (multiple are used)
+     * @param maxCacheAge         Maximum number of seconds to cache (after
+     *                            request has been completed)
+     *                            This should be reasonably low for monitoring,
+     *                            but high enough to lessen database load
      * @param diagPercentMatch    How much a diag should match before being
      *                            collapsed
      * @param diagCollapseMaxRows how many diags to look at (at most) when
@@ -76,7 +80,7 @@ public class QueueStatusBean {
      *                            age
      * @return Response containing json structure
      */
-    public Response getQueueStatus(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues) {
+    public Response getQueueStatus(DataSource dataSource, long maxCacheAge, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues) {
         log.info("getQueueStatus called");
         try {
             synchronized (QUEUE_STATUS) {
@@ -121,7 +125,7 @@ public class QueueStatusBean {
                     Instant postTime = Instant.now();
                     long duration = preTime.until(postTime, ChronoUnit.MILLIS);
                     props.put("query-time(ms)", duration);
-                    long seconds = Long.min(60, (long) Math.pow(2.0, Math.log(duration)));
+                    long seconds = Long.min(maxCacheAge, (long) Math.pow(2.0, Math.log(duration)));
                     props.put("will-cache(s)", seconds);
                     props.put("run-at", postTime.toString());
                     props.put("expires", postTime.plusSeconds(seconds).toString());
