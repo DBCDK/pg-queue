@@ -26,7 +26,8 @@
         <module>supplier</module>
         <module>consumer</module>
         <module>ee</module>
-    </modules>
+    <module>ee-diags</module>
+  </modules>
 
     <dependencies>
         <dependency>
