@@ -91,9 +91,13 @@ public class QueueStatusBean {
                 } else {
                     Instant preTime = Instant.now();
                     QUEUE_STATUS.removeAll();
+                    // The balant misuse of jacksons inststance on having object
+                    // keys in the order theyre created. Create the keys in the
+                    // human readble order
                     props = QUEUE_STATUS.putObject("props");
                     props.put("cached", Boolean.FALSE);
                     QUEUE_STATUS.put("queue", "Internal Error");
+                    QUEUE_STATUS.putPOJO("queue-max-age-skip-list", null);
                     QUEUE_STATUS.put("queue-max-age", "NaN");
                     QUEUE_STATUS.put("diag", "Internal Error");
                     QUEUE_STATUS.put("diag-count", "NaN");
@@ -103,18 +107,6 @@ public class QueueStatusBean {
 
                     JsonNode queueNode = queue.get();
                     QUEUE_STATUS.set("queue", queueNode);
-                    int queueMaxAge = 0;
-                    if (queueNode.isObject()) {
-                        for (Iterator<Map.Entry<String, JsonNode>> iterator = ( (ObjectNode) queueNode ).fields() ; iterator.hasNext() ;) {
-                            Map.Entry<String, JsonNode> queueEntry = iterator.next();
-                            if (!ignoreQueues.contains(queueEntry.getKey())) {
-                                JsonNode node = queueEntry.getValue();
-                                int age = node.get("age").asInt();
-                                queueMaxAge = Integer.max(queueMaxAge, age);
-                            }
-                        }
-                    }
-                    QUEUE_STATUS.put("queue-max-age", queueMaxAge);
 
                     int diagCountNumber = diagCount.get();
                     QUEUE_STATUS.set("diag", diag.get());
@@ -130,6 +122,22 @@ public class QueueStatusBean {
                     props.put("run-at", postTime.toString());
                     props.put("expires", postTime.plusSeconds(seconds).toString());
                 }
+
+                QUEUE_STATUS.putPOJO("queue-max-age-skip-list", ignoreQueues);
+                JsonNode queueNode = QUEUE_STATUS.get("queue");
+                int queueMaxAge = 0;
+                if (queueNode.isObject()) {
+                    for (Iterator<Map.Entry<String, JsonNode>> iterator = ( (ObjectNode) queueNode ).fields() ; iterator.hasNext() ;) {
+                        Map.Entry<String, JsonNode> queueEntry = iterator.next();
+                        if (!ignoreQueues.contains(queueEntry.getKey())) {
+                            JsonNode node = queueEntry.getValue();
+                            int age = node.get("age").asInt();
+                            queueMaxAge = Integer.max(queueMaxAge, age);
+                        }
+                    }
+                }
+                QUEUE_STATUS.put("queue-max-age", queueMaxAge);
+
                 return Response.ok().entity(O.writeValueAsString(QUEUE_STATUS)).build();
             }
         } catch (InterruptedException | ExecutionException ex) {
