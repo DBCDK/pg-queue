@@ -123,7 +123,7 @@ public class QueueStatusBean {
                     props.put("expires", postTime.plusSeconds(seconds).toString());
                 }
 
-                QUEUE_STATUS.putPOJO("queue-max-age-skip-list", ignoreQueues);
+                QUEUE_STATUS.putPOJO("queue-max-age-skip-list", new ArrayList<>(ignoreQueues));
                 JsonNode queueNode = QUEUE_STATUS.get("queue");
                 int queueMaxAge = 0;
                 if (queueNode.isObject()) {
