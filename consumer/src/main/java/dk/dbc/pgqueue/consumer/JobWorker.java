@@ -563,9 +563,12 @@ class JobWorker<T> implements Runnable {
             }
             deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
         }
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS, job.getConsumer());
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS_1, job.getConsumer());
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS_2, job.getConsumer());
         harvester.settings.deduplicateAbstraction
                 .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicate.DUPLICATE_POS);
+        harvester.settings.deduplicateAbstraction
+                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicate.DUPLICATE_POS + harvester.getDuplicateDeleteColumnsCount());
         return deleteDuplicateStmt;
     }
 

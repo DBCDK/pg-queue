@@ -80,10 +80,12 @@ class Harvester<T> implements QueueWorker {
                                           " FROM queue" +
                                           " WHERE consumer=?" +
                                           " AND dequeueAfter<=clock_timestamp()" +
+                                          " AND CTID IN (SELECT CTID FROM queue WHERE consumer = ? AND %s)" +
                                           " AND %s" +
                                           " RETURNING " + JobMetaData.COLUMNS + ", %s";
-        static final int CONSUMER_POS = 1;
-        static final int DUPLICATE_POS = 2;
+        static final int CONSUMER_POS_1 = 1;
+        static final int CONSUMER_POS_2 = 2;
+        static final int DUPLICATE_POS = 3;
     }
 
     private static class SqlInsert {
@@ -112,6 +114,7 @@ class Harvester<T> implements QueueWorker {
     private final String postponeSql;
     private final String failedSql;
     private final String deleteDuplicateSql;
+private final int duplicateDeleteColumnsCount;
 
     final Timer databaseconnectTimer;
     final Timer dequeueTimer;
@@ -144,12 +147,14 @@ class Harvester<T> implements QueueWorker {
         this.failedSql = String.format(SqlFailed.SQL, jobColumns, jobSqlPlaceholders);
         if (config.deduplicateAbstraction == null) {
             this.deleteDuplicateSql = null;
+            this.duplicateDeleteColumnsCount = 0;
         } else {
             String[] duplicateDeleteColumns = config.deduplicateAbstraction.duplicateDeleteColumnList();
+            this.duplicateDeleteColumnsCount = duplicateDeleteColumns.length;
             String whereClause = Arrays.stream(duplicateDeleteColumns)
                     .map(s -> s + "=?")
                     .collect(Collectors.joining(" AND "));
-            this.deleteDuplicateSql = String.format(SqlDeleteDuplicate.SQL, whereClause, jobColumns);
+            this.deleteDuplicateSql = String.format(SqlDeleteDuplicate.SQL, whereClause, whereClause, jobColumns);
         }
         this.databaseconnectTimer = makeTimer("databaseconnect");
         this.dequeueTimer = makeTimer("dequeue");
@@ -283,6 +288,10 @@ class Harvester<T> implements QueueWorker {
      */
     String getDeleteDuplicateSql() {
         return deleteDuplicateSql;
+    }
+
+    public int getDuplicateDeleteColumnsCount() {
+        return duplicateDeleteColumnsCount;
     }
 
     /**
