@@ -80,7 +80,7 @@ class Harvester<T> implements QueueWorker {
                                           " FROM queue" +
                                           " WHERE consumer=?" +
                                           " AND dequeueAfter<=clock_timestamp()" +
-                                          " AND CTID IN (SELECT CTID FROM queue WHERE consumer = ? AND %s)" +
+                                          " AND CTID IN (SELECT CTID FROM queue WHERE consumer = ? AND %s FOR UPDATE SKIP LOCKED)" +
                                           " AND %s" +
                                           " RETURNING " + JobMetaData.COLUMNS + ", %s";
         static final int CONSUMER_POS_1 = 1;
