@@ -160,6 +160,8 @@ class JobWorker<T> implements Runnable {
                 consumer.accept(connection, job.getActualJob(), job);
                 success = true;
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
+                log.debug("committing");
+                connection.commit();
             } catch (FatalQueueError ex) {
                 log.debug("Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
