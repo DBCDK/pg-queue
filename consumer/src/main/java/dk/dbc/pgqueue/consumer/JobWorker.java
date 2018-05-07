@@ -165,6 +165,8 @@ class JobWorker<T> implements Runnable {
                 connection.rollback(savepoint);
                 connection.commit(); // In case of failJob fails
                 failJob(job, getExceptionMessage(ex));
+                log.debug("committing");
+                connection.commit();
             } catch (PostponedNonFatalQueueError ex) {
                 log.debug("Non Fatal error: {} (postpone)", ex.getMessage());
                 connection.rollback(savepoint);
@@ -174,6 +176,8 @@ class JobWorker<T> implements Runnable {
                 } else {
                     postponeJob(job, ex.getPostponedMs());
                 }
+                log.debug("committing");
+                connection.commit();
             } catch (NonFatalQueueError | RuntimeException ex) {
                 log.debug("Non Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
@@ -184,7 +188,6 @@ class JobWorker<T> implements Runnable {
                 } else {
                     retryJob(job);
                 }
-            } finally {
                 log.debug("committing");
                 connection.commit();
             }
