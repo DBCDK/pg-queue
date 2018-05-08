@@ -160,15 +160,11 @@ class JobWorker<T> implements Runnable {
                 consumer.accept(connection, job.getActualJob(), job);
                 success = true;
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
-                log.debug("committing");
-                connection.commit();
             } catch (FatalQueueError ex) {
                 log.debug("Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
                 connection.commit(); // In case of failJob fails
                 failJob(job, getExceptionMessage(ex));
-                log.debug("committing");
-                connection.commit();
             } catch (PostponedNonFatalQueueError ex) {
                 log.debug("Non Fatal error: {} (postpone)", ex.getMessage());
                 connection.rollback(savepoint);
@@ -178,8 +174,6 @@ class JobWorker<T> implements Runnable {
                 } else {
                     postponeJob(job, ex.getPostponedMs());
                 }
-                log.debug("committing");
-                connection.commit();
             } catch (NonFatalQueueError | RuntimeException ex) {
                 log.debug("Non Fatal error: {}", ex.getMessage());
                 connection.rollback(savepoint);
@@ -190,9 +184,9 @@ class JobWorker<T> implements Runnable {
                 } else {
                     retryJob(job);
                 }
-                log.debug("committing");
-                connection.commit();
             }
+            log.debug("committing");
+            connection.commit();
         } catch (SQLException ex) {
             success = false; // in case a commit after a succesfull job fails
             log.error("Rolling back because of: {}", ex.getMessage());
