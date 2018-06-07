@@ -17,7 +17,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Locale;
@@ -70,14 +69,6 @@ public class ProcessesWebSocketBean {
     QueueStatusBean qsb;
 
     private DataSource dataSource;
-
-    private static interface JobLogger {
-
-        String pattern();
-
-        Object[] objects(ResultSet resultSet);
-
-    }
 
     private JobLogMapper mapper;
 
