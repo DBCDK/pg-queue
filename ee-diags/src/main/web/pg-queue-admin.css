@@ -10,6 +10,7 @@
     padding: 3px;
 }
 .log {
+    font-family: monospace;
     background-color: lightgrey;
     white-space: pre;
     height: calc(50vh - 6em);
