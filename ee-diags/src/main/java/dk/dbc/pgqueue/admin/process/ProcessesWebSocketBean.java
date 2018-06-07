@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -58,6 +59,7 @@ public class ProcessesWebSocketBean {
     private static final int DIAG_MAX_CACHE_AGE = 45;
     private static final int DIAG_PERCENT_MATCH = 90;
     private static final int DIAG_COLLAPSE_MAX_ROWS = 12500;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS");
 
     private final ConcurrentHashMap<String, Session> sessions;
     private final ConcurrentHashMap<String, String> logReciever; // SessionId -> ProcessId
@@ -312,9 +314,14 @@ public class ProcessesWebSocketBean {
                                 String consumer = resultSet.getString("consumer");
                                 maxComsumerLength = Integer.max(maxComsumerLength, consumer.length());
                                 consumer = String.format(Locale.ROOT, "%-" + maxComsumerLength + "s", consumer);
-                                log.info("{}: {} - @\"{}\" {}", consumer,
+                                log.info("{}: {} - @{}/{} {}", consumer,
                                          mapper.format(resultSet),
-                                         resultSet.getString("failedAt"),
+                                         resultSet.getTimestamp("queued")
+                                                 .toLocalDateTime()
+                                                 .format(DATE_TIME_FORMATTER),
+                                         resultSet.getTimestamp("failedAt")
+                                                 .toLocalDateTime()
+                                                 .format(DATE_TIME_FORMATTER),
                                          resultSet.getString("diag"));
                             } while (resultSet.next());
                             if (row % 1000 != 0) {
