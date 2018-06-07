@@ -7,9 +7,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
+import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
-import javax.inject.Inject;
 
 /**
  *
@@ -21,7 +21,7 @@ public class Processes {
     @Resource(type = ManagedExecutorService.class)
     ExecutorService mes;
 
-    @Inject
+    @EJB
     ProcessesWebSocketBean processesState;
 
     private final ConcurrentHashMap<String, Process> processes = new ConcurrentHashMap<>();
