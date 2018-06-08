@@ -25,7 +25,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -198,17 +201,17 @@ class JobWorker<T> implements Runnable {
     }
 
     private String getExceptionMessage(Exception ex) {
-        Throwable tw = ex;
-
-        String message = null;
-
-        while (message == null && tw != null) {
-            message = tw.getMessage();
-            tw = tw.getCause();
+        List<String> messages = new ArrayList<>(3);
+        for (Throwable tw = ex ; tw != null && messages.size() < 3 ; tw = tw.getCause()) {
+            String message = tw.getMessage();
+            if (message != null && !message.isEmpty()) {
+                messages.add(message);
+            }
         }
-        if (message == null) {
-            message = "Anonymous " + ex.getClass().getSimpleName();
+        if(messages.isEmpty()) {
+            messages = Collections.singletonList("Anonymous " + ex.getClass().getSimpleName());
         }
+        String message = String.join(", ", messages);
         log.debug("Exception message is: {}", message);
         return message;
     }
