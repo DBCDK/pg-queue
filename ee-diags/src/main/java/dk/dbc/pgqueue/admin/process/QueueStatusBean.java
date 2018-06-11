@@ -1,4 +1,4 @@
-package dk.dbc.pgqueue.diags;
+package dk.dbc.pgqueue.admin.process;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,8 +35,6 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Singleton
-@LocalBean
 /**
  * Bean for accessing queue and queue_error from the database
  * <p>
@@ -47,6 +45,8 @@ import org.slf4j.LoggerFactory;
  *
  * @author DBC {@literal <dbc.dk>}
  */
+@Singleton
+@LocalBean
 public class QueueStatusBean {
 
     private static final ObjectMapper O = new ObjectMapper();

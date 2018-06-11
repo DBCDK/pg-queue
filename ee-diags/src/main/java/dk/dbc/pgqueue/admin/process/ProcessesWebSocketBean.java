@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import dk.dbc.pgqueue.diags.QueueStatusBean;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -65,29 +64,19 @@ public class ProcessesWebSocketBean {
     private final ConcurrentHashMap<String, String> logReciever; // SessionId -> ProcessId
 
     @EJB
+    PgQueueAdminConfig config;
+
+    @EJB
     Processes processes;
 
     @EJB
     QueueStatusBean qsb;
-
-    private DataSource dataSource;
-
-    private JobLogMapper mapper;
 
     public ProcessesWebSocketBean() {
         this.sessions = new ConcurrentHashMap<>();
         this.logReciever = new ConcurrentHashMap<>();
     }
 
-    @PostConstruct
-    public void init() {
-        log.info("Initializing Queue WebSocket");
-
-        String jndiName = readNameFromResource("pq-queue-admin.jndi-name");
-        String logMapperName = readNameFromResource("pq-queue-admin.log-mapper");
-        dataSource = lookupDataSource(jndiName);
-        mapper = findMapper(logMapperName);
-    }
 
     @PreDestroy
     public void destroy() {
@@ -101,42 +90,6 @@ public class ProcessesWebSocketBean {
         }
     }
 
-    JobLogMapper findMapper(String name) throws SecurityException, EJBException {
-        try {
-            int idx = name.lastIndexOf(".");
-            if (idx < 0) {
-                throw new EJBException("Invalid mapper name " + name + " expected class.STATIC_VARIABLE");
-            }
-            String className = name.substring(0, idx);
-            String fieldName = name.substring(idx + 1);
-            Class<?> mapper = getClass().getClassLoader().loadClass(className);
-            Field field = mapper.getDeclaredField(fieldName);
-            Class<?> declaringClass = field.getType();
-            if (JobLogMapper.class.isAssignableFrom(declaringClass)) {
-                if (( field.getModifiers() & ( Modifier.STATIC | Modifier.FINAL ) ) == ( Modifier.STATIC | Modifier.FINAL )) {
-                    return (JobLogMapper) field.get(null);
-                }
-            }
-            throw new EJBException("Cannot look up job mapper: " + name + " not of type  `static final LogMapper'");
-        } catch (NoSuchFieldException | ClassNotFoundException ex) {
-            throw new EJBException("Cannot look up job mapper: " + name, ex);
-        } catch (IllegalArgumentException | IllegalAccessException ex) {
-            throw new EJBException("Cannot access field: " + name, ex);
-        }
-    }
-
-    DataSource lookupDataSource(String jndiName) throws EJBException {
-        try {
-            Object resource = InitialContext.doLookup(jndiName);
-            if (resource instanceof DataSource) {
-                return (DataSource) resource;
-            } else {
-                throw new EJBException("Resource " + jndiName + " is not a DataSource");
-            }
-        } catch (NamingException ex) {
-            throw new EJBException("Cannot look up: " + jndiName, ex);
-        }
-    }
 
     String readNameFromResource(String resource) throws EJBException {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("/" + resource)) {
@@ -240,7 +193,7 @@ public class ProcessesWebSocketBean {
                         break;
                     }
                     case "queue-diags": {
-                        String response = qsb.queueStatusText(dataSource, DIAG_PERCENT_MATCH, DIAG_COLLAPSE_MAX_ROWS, DIAG_MAX_CACHE_AGE, Collections.EMPTY_SET, true);
+                        String response = qsb.queueStatusText(config.getDataSource(), DIAG_PERCENT_MATCH, DIAG_COLLAPSE_MAX_ROWS, DIAG_MAX_CACHE_AGE, Collections.EMPTY_SET, true);
                         response = "{\"action\":\"queue_diags\"," + response.substring(1);
                         session.getBasicRemote().sendText(response);
                         break;
@@ -299,7 +252,7 @@ public class ProcessesWebSocketBean {
             public void run(Logger log) {
                 log.info("{} pattern: `{}'", name, pattern);
                 int maxComsumerLength = 0;
-                try (Connection connection = dataSource.getConnection() ;
+                try (Connection connection = config.getDataSource().getConnection() ;
                      PreparedStatement stmt = connection.prepareStatement(sql)) {
                     connection.setAutoCommit(false);
                     stmt.setString(1, pattern.replace("%", "\\%").replace("*", "%"));
@@ -315,7 +268,7 @@ public class ProcessesWebSocketBean {
                                 maxComsumerLength = Integer.max(maxComsumerLength, consumer.length());
                                 consumer = String.format(Locale.ROOT, "%-" + maxComsumerLength + "s", consumer);
                                 log.info("{}: {} - @{}/{} {}", consumer,
-                                         mapper.format(resultSet),
+                                         config.getJobLogMapper().format(resultSet),
                                          resultSet.getTimestamp("queued")
                                                  .toLocalDateTime()
                                                  .format(DATE_TIME_FORMATTER),
