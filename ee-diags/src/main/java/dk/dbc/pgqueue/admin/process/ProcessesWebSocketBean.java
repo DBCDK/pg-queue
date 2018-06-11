@@ -7,8 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,16 +21,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.ejb.EJB;
 import javax.ejb.EJBException;
 import javax.ejb.Lock;
 import javax.ejb.LockType;
 import javax.ejb.Singleton;
-import javax.naming.InitialContext;
-import javax.naming.NamingException;
-import javax.sql.DataSource;
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
 import javax.websocket.OnMessage;
@@ -238,13 +232,19 @@ public class ProcessesWebSocketBean {
                         processes.startProcess(id); // Ensure first log line comes after process started
                         break;
                     }
+                    case "count-diags": {
+                        String pattern = tree.get("pattern").asText("");
+                        JsonNode response = countDiags(pattern);
+                        session.getBasicRemote().sendText(O.writeValueAsString(response));
+                        break;
+                    }
                     default: {
                         log.warn("Unknown action: " + action);
                         break;
                     }
                 }
             }
-        } catch (InterruptedException | ExecutionException | IOException ex) {
+        } catch (InterruptedException | ExecutionException | IOException | SQLException ex) {
             log.error("Error parsing content ({}): {}", message, ex.getMessage());
             log.debug("Error parsing content ({}): ", message, ex);
             try {
@@ -254,6 +254,23 @@ public class ProcessesWebSocketBean {
                 log.debug("Error closing session after exception: ", sessionEx);
             }
         }
+    }
+
+    private JsonNode countDiags(String pattern) throws SQLException {
+        ObjectNode ret = O.createObjectNode();
+        ret.put("pattern", pattern);
+        ret.put("action", "count_diags");
+        ObjectNode groups = ret.putObject("groups");
+        try (Connection connection = config.getDataSource().getConnection() ;
+             PreparedStatement stmt = connection.prepareStatement("SELECT consumer, COUNT(*) FROM queue_error WHERE diag LIKE ? GROUP BY consumer ORDER BY consumer")) {
+            stmt.setString(1, pattern.replace("%", "\\%").replace("*", "%"));
+            try (ResultSet resultSet = stmt.executeQuery()) {
+                while (resultSet.next()) {
+                    groups.put(resultSet.getString(1), resultSet.getLong(2));
+                }
+            }
+        }
+        return ret;
     }
 
     private Process createJob(String pattern, String name, String sql) {

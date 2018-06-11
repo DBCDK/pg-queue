@@ -105,6 +105,12 @@
                 panel.classList.add('panel-selected');
             }
         };
+        var abort_discard = function () {
+            var abort_button = document.getElementById("abort");
+            if (abort_button !== null) {
+                abort_button.click();
+            }
+        };
         actions.system_name = function (json) {
             var titles = document.getElementsByTagName("TITLE");
             for (var i = 0; i < titles.length; i++) {
@@ -112,6 +118,21 @@
                 while (title.hasChildNodes())
                     title.removeChild(title.firstChild);
                 title.appendChild(document.createTextNode(json.system_name));
+            }
+        };
+        actions.count_diags = function (json) {
+            var tbody = document.getElementById("diag-count");
+            if (tbody === null)
+                return;
+            for (var consumer in json.groups) {
+                var tr = document.createElement("tr");
+                var td = document.createElement("td");
+                td.appendChild(document.createTextNode(consumer));
+                tr.appendChild(td);
+                var td = document.createElement("td");
+                td.appendChild(document.createTextNode(json.groups[consumer]));
+                tr.appendChild(td);
+                tbody.appendChild(tr);
             }
         };
         actions.log = function (json) {
@@ -256,6 +277,7 @@
             requeue.appendChild(document.createTextNode("Requeue"));
             requeue.onclick = (function (pattern, div) {
                 return function () {
+                    abort_discard();
                     send({action: "requeue", pattern: pattern});
                     elements.diags.removeChild(div);
                 };
@@ -265,22 +287,68 @@
             list.appendChild(document.createTextNode("List"));
             list.onclick = (function (pattern, div) {
                 return function () {
+                    abort_discard();
                     send({action: "list", pattern: pattern});
                 };
             })(diag, div);
+            var discard_div = document.createElement("div");
+            discard_div.setAttribute("class", "discard");
             var discard = document.createElement("button");
             discard.setAttribute("class", "action");
             discard.appendChild(document.createTextNode("Discard"));
-            discard.onclick = (function (pattern, div) {
+            discard.onclick = (function (pattern, div, discard_div) {
                 return function () {
-                    send({action: "discard", pattern: pattern});
-                    elements.diags.removeChild(div);
+                    abort_discard();
+                    var popup = document.createElement("div");
+                    popup.setAttribute("class", "round");
+                    var title = document.createElement("div");
+                    title.appendChild(document.createTextNode("Discard?"));
+                    popup.appendChild(title);
+                    var body = document.createElement("div");
+                    popup.appendChild(body);
+                    body.appendChild(document.createTextNode("Pattern: " + pattern));
+                    var table = document.createElement("table");
+                    body.appendChild(table);
+                    var tbody = document.createElement("tbody");
+                    table.appendChild(tbody);
+                    var tr = document.createElement("tr");
+                    var th = document.createElement("th");
+                    th.appendChild(document.createTextNode("Consumer"));
+                    tr.appendChild(th);
+                    var th = document.createElement("th");
+                    th.appendChild(document.createTextNode("Count"));
+                    tr.appendChild(th);
+                    tbody.appendChild(tr);
+                    tbody.setAttribute("id", "diag-count");
+                    var abort = document.createElement("button");
+                    abort.setAttribute("class", "action");
+                    abort.setAttribute("id", "abort");
+                    abort.appendChild(document.createTextNode("Abort"));
+                    abort.onclick = (function (discard_div, popup) {
+                        return function () {
+                            discard_div.removeChild(popup);
+                        };
+                    })(discard_div, popup);
+                    body.appendChild(abort);
+                    var really_discard = document.createElement("button");
+                    really_discard.setAttribute("class", "action");
+                    really_discard.appendChild(document.createTextNode("Discard"));
+                    really_discard.onclick = (function (pattern, div) {
+                        return function () {
+                            send({action: "discard", pattern: pattern});
+                            elements.diags.removeChild(div);
+                        };
+                    })(pattern, div);
+                    body.appendChild(really_discard);
+                    discard_div.appendChild(popup);
+                    send({action: "count-diags", pattern: pattern});
                 };
-            })(diag, div);
+            })(diag, div, discard_div);
+            discard_div.appendChild(discard);
 
             div.appendChild(requeue);
             div.appendChild(list);
-            div.appendChild(discard);
+            div.appendChild(discard_div);
             div.appendChild(document.createTextNode(message));
             elements.diags.appendChild(div);
         };

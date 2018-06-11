@@ -1,7 +1,7 @@
 #diags {
     background-color: lightgrey;
     white-space: pre;
-    height: calc(50vh - 10.5em);
+    height: calc(50vh - 12.5em);
     overflow: scroll;
     resize: vertical;
     white-space: nowrap;
@@ -76,6 +76,24 @@
     alignment-baseline: middle;
 
 }
+.discard {
+    position: relative;
+    display: inline-block;
+    padding: 0px;
+    margin: 0px;
+    border: 0px;
+}
+.discard > div {
+    position: absolute;
+    top: 1em;
+    left: 1em;
+    background-color: lightyellow;
+    z-index: 400;
+    min-width: calc(100vw - 16em);
+}
+.discard > div > * {
+    white-space: nowrap;
+}
 
 .round {
     display: inline-block;
@@ -101,7 +119,7 @@
 
 .round {
     margin: 2em 0em 0em 0em !important;
-    width: 100% !important;
+    width: 100%;
 }
 .round > :first-child {
     display: block;
