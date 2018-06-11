@@ -1,4 +1,4 @@
-package dk.dbc.pgqueue.diags;
+package dk.dbc.pgqueue.admin.process;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -35,8 +35,6 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Singleton
-@LocalBean
 /**
  * Bean for accessing queue and queue_error from the database
  * <p>
@@ -47,6 +45,8 @@ import org.slf4j.LoggerFactory;
  *
  * @author DBC {@literal <dbc.dk>}
  */
+@Singleton
+@LocalBean
 public class QueueStatusBean {
 
     private static final ObjectMapper O = new ObjectMapper();
@@ -83,63 +83,8 @@ public class QueueStatusBean {
     public Response getQueueStatus(DataSource dataSource, long maxCacheAge, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues) {
         log.info("getQueueStatus called");
         try {
-            synchronized (QUEUE_STATUS) {
-                ObjectNode props = (ObjectNode) QUEUE_STATUS.get("props");
-                JsonNode expires = props.get("expires");
-                if (expires != null && Instant.parse(expires.asText()).isAfter(Instant.now())) {
-                    props.put("cached", Boolean.TRUE);
-                } else {
-                    Instant preTime = Instant.now();
-                    QUEUE_STATUS.removeAll();
-                    // The balant misuse of jacksons inststance on having object
-                    // keys in the order theyre created. Create the keys in the
-                    // human readble order
-                    props = QUEUE_STATUS.putObject("props");
-                    props.put("cached", Boolean.FALSE);
-                    QUEUE_STATUS.put("queue", "Internal Error");
-                    QUEUE_STATUS.putPOJO("queue-max-age-skip-list", null);
-                    QUEUE_STATUS.put("queue-max-age", "NaN");
-                    QUEUE_STATUS.put("diag", "Internal Error");
-                    QUEUE_STATUS.put("diag-count", "NaN");
-                    Future<JsonNode> queue = es.submit(() -> createQueueStatusNode(dataSource));
-                    Future<Integer> diagCount = es.submit(() -> createDiagCount(dataSource));
-                    Future<JsonNode> diag = es.submit(() -> createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows));
-
-                    JsonNode queueNode = queue.get();
-                    QUEUE_STATUS.set("queue", queueNode);
-
-                    int diagCountNumber = diagCount.get();
-                    QUEUE_STATUS.set("diag", diag.get());
-                    QUEUE_STATUS.put("diag-count", diagCountNumber);
-                    if (diagCountNumber > diagCollapseMaxRows) {
-                        QUEUE_STATUS.put("diag-count-warning", "Too many diag rows for collapsing, only looking at " + diagCollapseMaxRows + " rows");
-                    }
-                    Instant postTime = Instant.now();
-                    long duration = preTime.until(postTime, ChronoUnit.MILLIS);
-                    props.put("query-time(ms)", duration);
-                    long seconds = Long.min(maxCacheAge, (long) Math.pow(2.0, Math.log(duration)));
-                    props.put("will-cache(s)", seconds);
-                    props.put("run-at", postTime.toString());
-                    props.put("expires", postTime.plusSeconds(seconds).toString());
-                }
-
-                QUEUE_STATUS.putPOJO("queue-max-age-skip-list", new ArrayList<>(ignoreQueues));
-                JsonNode queueNode = QUEUE_STATUS.get("queue");
-                int queueMaxAge = 0;
-                if (queueNode.isObject()) {
-                    for (Iterator<Map.Entry<String, JsonNode>> iterator = ( (ObjectNode) queueNode ).fields() ; iterator.hasNext() ;) {
-                        Map.Entry<String, JsonNode> queueEntry = iterator.next();
-                        if (!ignoreQueues.contains(queueEntry.getKey())) {
-                            JsonNode node = queueEntry.getValue();
-                            int age = node.get("age").asInt();
-                            queueMaxAge = Integer.max(queueMaxAge, age);
-                        }
-                    }
-                }
-                QUEUE_STATUS.put("queue-max-age", queueMaxAge);
-
-                return Response.ok().entity(O.writeValueAsString(QUEUE_STATUS)).build();
-            }
+            String queueStatus = queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows, maxCacheAge, ignoreQueues, false);
+            return Response.ok().entity(queueStatus).build();
         } catch (InterruptedException | ExecutionException ex) {
             log.error("Error getting queue status: {}", ex.getMessage());
             log.debug("Error getting queue status: ", ex);
@@ -148,6 +93,88 @@ public class QueueStatusBean {
             log.error("Error getting queue status: {}", ex.getMessage());
             log.debug("Error getting queue status: ", ex);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * Produce a json resonse regarding the state of the queue
+     *
+     * @param dataSource          Where to get the database connections from
+     *                            (multiple are used)
+     * @param maxCacheAge         Maximum number of seconds to cache (after
+     *                            request has been completed)
+     *                            This should be reasonably low for monitoring,
+     *                            but high enough to lessen database load
+     * @param diagPercentMatch    How much a diag should match before being
+     *                            collapsed
+     * @param diagCollapseMaxRows how many diags to look at (at most) when
+     *                            finding diag types
+     * @param ignoreQueues        set of queue names to ignore when getting max
+     *                            age
+     * @param force               disregard caching (can be expensive)
+     * @return json as text
+     * @throws com.fasterxml.jackson.core.JsonProcessingException Json error
+     * @throws java.util.concurrent.ExecutionException            Parallel query
+     *                                                            error
+     * @throws java.lang.InterruptedException                     Parallel query
+     *                                                            error
+     */
+    public String queueStatusText(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows, long maxCacheAge, Set<String> ignoreQueues, boolean force) throws JsonProcessingException, ExecutionException, InterruptedException {
+        synchronized (QUEUE_STATUS) {
+            ObjectNode props = (ObjectNode) QUEUE_STATUS.get("props");
+            JsonNode expires = props.get("expires");
+            if (!force && expires != null && Instant.parse(expires.asText()).isAfter(Instant.now())) {
+                props.put("cached", Boolean.TRUE);
+            } else {
+                Instant preTime = Instant.now();
+                QUEUE_STATUS.removeAll();
+                // The balant misuse of jacksons inststance on having object
+                // keys in the order theyre created. Create the keys in the
+                // human readble order
+                props = QUEUE_STATUS.putObject("props");
+                props.put("cached", Boolean.FALSE);
+                QUEUE_STATUS.put("queue", "Internal Error");
+                QUEUE_STATUS.putPOJO("queue-max-age-skip-list", null);
+                QUEUE_STATUS.put("queue-max-age", "NaN");
+                QUEUE_STATUS.put("diag", "Internal Error");
+                QUEUE_STATUS.put("diag-count", "NaN");
+                Future<JsonNode> queue = es.submit(() -> createQueueStatusNode(dataSource));
+                Future<Integer> diagCount = es.submit(() -> createDiagCount(dataSource));
+                Future<JsonNode> diag = es.submit(() -> createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows));
+
+                JsonNode queueNode = queue.get();
+                QUEUE_STATUS.set("queue", queueNode);
+
+                int diagCountNumber = diagCount.get();
+                QUEUE_STATUS.set("diag", diag.get());
+                QUEUE_STATUS.put("diag-count", diagCountNumber);
+                if (diagCountNumber > diagCollapseMaxRows) {
+                    QUEUE_STATUS.put("diag-count-warning", "Too many diag rows for collapsing, only looking at " + diagCollapseMaxRows + " rows");
+                }
+                Instant postTime = Instant.now();
+                long duration = preTime.until(postTime, ChronoUnit.MILLIS);
+                props.put("query-time(ms)", duration);
+                long seconds = Long.min(maxCacheAge, (long) Math.pow(2.0, Math.log(duration)));
+                props.put("will-cache(s)", seconds);
+                props.put("run-at", postTime.toString());
+                props.put("expires", postTime.plusSeconds(seconds).toString());
+            }
+
+            QUEUE_STATUS.putPOJO("queue-max-age-skip-list", new ArrayList<>(ignoreQueues));
+            JsonNode queueNode = QUEUE_STATUS.get("queue");
+            int queueMaxAge = 0;
+            if (queueNode.isObject()) {
+                for (Iterator<Map.Entry<String, JsonNode>> iterator = ( (ObjectNode) queueNode ).fields() ; iterator.hasNext() ;) {
+                    Map.Entry<String, JsonNode> queueEntry = iterator.next();
+                    if (!ignoreQueues.contains(queueEntry.getKey())) {
+                        JsonNode node = queueEntry.getValue();
+                        int age = node.get("age").asInt();
+                        queueMaxAge = Integer.max(queueMaxAge, age);
+                    }
+                }
+            }
+            QUEUE_STATUS.put("queue-max-age", queueMaxAge);
+            return O.writeValueAsString(QUEUE_STATUS);
         }
     }
 
@@ -168,22 +195,22 @@ public class QueueStatusBean {
     public Response getDiagDistribution(String timeZoneName, DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows) {
         log.info("getDiagDistribution");
         try {
-            ZoneId zone = ZoneId.of(timeZoneName);
-            ObjectNode obj = O.createObjectNode();
-            JsonNode ret = obj;
-            JsonNode node = createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows);
-            if (node.isObject()) {
-                HashMap<String, Future<JsonNode>> futures = new HashMap<>();
-                for (Iterator<String> iterator = node.fieldNames() ; iterator.hasNext() ;) {
-                    String pattern = iterator.next();
-                    futures.put(pattern, es.submit(() -> listDiagsByTime(dataSource, pattern, zone)));
-                }
-                for (Map.Entry<String, Future<JsonNode>> entry : futures.entrySet()) {
-                    obj.set(entry.getKey(), entry.getValue().get());
-                }
-            } else {
-                ret = node;
+        ZoneId zone = ZoneId.of(timeZoneName);
+        ObjectNode obj = O.createObjectNode();
+        JsonNode ret = obj;
+        JsonNode node = createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows);
+        if (node.isObject()) {
+            HashMap<String, Future<JsonNode>> futures = new HashMap<>();
+            for (Iterator<String> iterator = node.fieldNames() ; iterator.hasNext() ;) {
+                String pattern = iterator.next();
+                futures.put(pattern, es.submit(() -> listDiagsByTime(dataSource, pattern, zone)));
             }
+            for (Map.Entry<String, Future<JsonNode>> entry : futures.entrySet()) {
+                obj.set(entry.getKey(), entry.getValue().get());
+            }
+        } else {
+            ret = node;
+        }
             return Response.ok().entity(O.writeValueAsString(ret)).build();
         } catch (InterruptedException | ExecutionException ex) {
             log.error("Error getting queue status: {}", ex.getMessage());

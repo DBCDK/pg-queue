@@ -1,0 +1,138 @@
+#diags {
+    background-color: lightgrey;
+    white-space: pre;
+    height: calc(50vh - 10.5em);
+    overflow: scroll;
+    resize: vertical;
+    white-space: nowrap;
+}
+#diags > div {
+    padding: 3px;
+}
+.log {
+    font-family: monospace;
+    background-color: lightgrey;
+    white-space: pre;
+    height: calc(50vh - 6em);
+    overflow: scroll;
+    resize: vertical;
+    padding: 0.2em;
+}
+.log-selected {
+    background-color: white;
+}
+#panels {
+    background-color: gray;
+}
+.panel {
+    display: none;
+}
+.panel-selected {
+    display: initial;
+}
+#tabs {
+    max-height: 1.8em;
+}
+.tab-selected {
+    font-weight: bolder;
+}
+.tab-running {
+    color: green;
+}
+.tab-completed {
+}
+#errors {
+    top: 0px;
+    left: 0px;
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+    overflow: scroll;
+    background: rgba(50,0,0,.8);
+}
+#errors:empty {
+    display: none;
+}
+
+#errors > div {
+    background: rgba(00,0,0,1);
+    margin: 2em;
+    background-color: black;
+    width: calc(100vw - 8em);
+    -moz-border-radius: 0.75em;
+    -webkit-border-radius: 0.75em;
+    border-radius: 0.75em;
+
+    color: white;
+    padding: 2em;
+    font-size: xx-large;
+}
+#errors > div > div.close {
+    position: relative;
+    top: -1.8em;
+    left: -1.8em;
+    height: 0px;
+    overflow: visible;
+    alignment-baseline: middle;
+
+}
+
+.round {
+    display: inline-block;
+    -moz-border-radius: 0.75em;
+    -webkit-border-radius: 0.75em;
+    border-radius: 0.75em;
+    border: 0.1em solid;
+    background-color: #eee;
+}
+.round {
+    margin: 0.25em 0em 0em 0em;
+    width: 100%;
+}
+.round > :first-child {
+    display: block;
+    white-space: initial;
+    margin: 0em 0.75em;
+    width: calc(100% - 1.5em);
+    text-align: center;
+    font-variant: small-caps;
+    font-size: 300%
+}
+
+.round {
+    margin: 2em 0em 0em 0em !important;
+    width: 100% !important;
+}
+.round > :first-child {
+    display: block;
+    text-align: right;
+    position: absolute;
+    font-size: 150%;
+    background-color: inherit;
+    margin: -1em 0em 0em 0.75em;
+    -moz-border-radius: 0.375em;
+    -webkit-border-radius: 0.375em;
+    border-radius: 0.375em;
+    border: 0.067em solid;
+    padding: 0.125em 0.25em;
+    width: auto;
+}
+.round > * {
+    display: block;
+    padding-top: 1em;
+    display: inline-block;
+    margin: 0.75em;
+    white-space: initial;
+    width: calc(100% - 1.5em);
+}
+.round > div > * {
+    margin: initial;
+    padding: initial;
+    white-space: initial;
+    width: auto;
+}
+
+
+#refresh {
+    margin: .2em;
+}
