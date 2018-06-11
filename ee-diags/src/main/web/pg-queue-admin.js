@@ -81,6 +81,8 @@
             var action = json.action;
             if (action in actions) {
                 actions[action](json);
+            } else {
+                error("Unknown response: " + action);
             }
         };
         var send = function (message) {
@@ -103,7 +105,15 @@
                 panel.classList.add('panel-selected');
             }
         };
-
+        actions.system_name = function (json) {
+            var titles = document.getElementsByTagName("TITLE");
+            for (var i = 0; i < titles.length; i++) {
+                var title = titles.item(i);
+                while (title.hasChildNodes())
+                    title.removeChild(title.firstChild);
+                title.appendChild(document.createTextNode(json.system_name));
+            }
+        };
         actions.log = function (json) {
             var log = document.getElementById(json.id + "-log");
             if (log !== null) {

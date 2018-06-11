@@ -77,7 +77,6 @@ public class ProcessesWebSocketBean {
         this.logReciever = new ConcurrentHashMap<>();
     }
 
-
     @PreDestroy
     public void destroy() {
         for (Session session : sessions.values()) {
@@ -89,7 +88,6 @@ public class ProcessesWebSocketBean {
             }
         }
     }
-
 
     String readNameFromResource(String resource) throws EJBException {
         try (InputStream is = getClass().getClassLoader().getResourceAsStream("/" + resource)) {
@@ -112,6 +110,18 @@ public class ProcessesWebSocketBean {
     @OnOpen
     public void open(Session session) {
         sessions.put(session.getId(), session);
+        try {
+            ObjectNode node = O.createObjectNode();
+            node.put("action", "system_name");
+            node.put("system_name", config.getSystemName());
+            String message = O.writeValueAsString(node);
+            session.getBasicRemote().sendText(message);
+        } catch (IOException ex) {
+            sessions.remove(session.getId());
+            log.error("Error sending message: {}", ex.getMessage());
+            log.debug("Error sending message: ", ex);
+            return;
+        }
         ArrayList<Process> processList = new ArrayList<>(processes.allProcesses());
         // Sort by started timestamp
         Collections.sort(processList, (Process l, Process r) -> {

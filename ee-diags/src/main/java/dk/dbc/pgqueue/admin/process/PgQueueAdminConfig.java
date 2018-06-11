@@ -46,6 +46,7 @@ public class PgQueueAdminConfig {
     private static final ObjectMapper O = new ObjectMapper();
     private DataSource dataSource;
     private JobLogMapper jobLogMapper;
+    private String systemName;
     private int diagPercentMatch;
     private int diagCollapseMaxRows;
     private long maxCacheAge;
@@ -71,6 +72,17 @@ public class PgQueueAdminConfig {
             }
             log.info("Using: jobLogMapper=" + jobLogMapperNameNode.asText());
             this.jobLogMapper = findJobLogMapper(jobLogMapperNameNode.asText());
+
+            JsonNode systemNameNode = node.get("systemName");
+            if (systemNameNode == null) {
+                log.info("Using: systemName=Unspecified (default)");
+                this.systemName = "Unspecified";
+            } else if (!systemNameNode.isTextual()) {
+                throw new EJBException("Cannot read `pg-queue-endpoint-config.json' resource: systemName not a text");
+            } else {
+                log.info("Using: systemName=" + systemNameNode.asText());
+                this.systemName = systemNameNode.asText();
+            }
 
             JsonNode diagPercentMatchNode = node.get("diagPercentMatch");
             if (diagPercentMatchNode == null) {
@@ -118,6 +130,10 @@ public class PgQueueAdminConfig {
 
     public JobLogMapper getJobLogMapper() {
         return jobLogMapper;
+    }
+
+    public String getSystemName() {
+        return systemName;
     }
 
     public int getDiagPercentMatch() {
