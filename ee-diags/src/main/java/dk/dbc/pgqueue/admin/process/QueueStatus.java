@@ -27,8 +27,10 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
 /**
  *
@@ -45,8 +47,8 @@ public class QueueStatus {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response get(@QueryParam("ignore") @DefaultValue("") String ignore,
-                        @QueryParam("force") String force) {
+    public Response get(@Context UriInfo info,
+                        @QueryParam("ignore") @DefaultValue("") String ignore) {
         Set<String> ignoreQueues = Arrays.stream(ignore.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -56,7 +58,7 @@ public class QueueStatus {
                                    config.getDiagPercentMatch(),
                                    config.getDiagCollapseMaxRows(),
                                    ignoreQueues,
-                                   force == null);
+                                   info.getQueryParameters().containsKey("force"));
     }
 
 }
