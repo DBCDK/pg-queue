@@ -78,12 +78,14 @@ public class QueueStatusBean {
      *                            finding diag types
      * @param ignoreQueues        set of queue names to ignore when getting max
      *                            age
+     * @param force               force reload of data... usually only needed in
+     *                            testing
      * @return Response containing json structure
      */
-    public Response getQueueStatus(DataSource dataSource, long maxCacheAge, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues) {
+    public Response getQueueStatus(DataSource dataSource, long maxCacheAge, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues, boolean force) {
         log.info("getQueueStatus called");
         try {
-            String queueStatus = queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows, maxCacheAge, ignoreQueues, false);
+            String queueStatus = queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows, maxCacheAge, ignoreQueues, force);
             return Response.ok().entity(queueStatus).build();
         } catch (InterruptedException | ExecutionException ex) {
             log.error("Error getting queue status: {}", ex.getMessage());
@@ -195,22 +197,22 @@ public class QueueStatusBean {
     public Response getDiagDistribution(String timeZoneName, DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows) {
         log.info("getDiagDistribution");
         try {
-        ZoneId zone = ZoneId.of(timeZoneName);
-        ObjectNode obj = O.createObjectNode();
-        JsonNode ret = obj;
-        JsonNode node = createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows);
-        if (node.isObject()) {
-            HashMap<String, Future<JsonNode>> futures = new HashMap<>();
-            for (Iterator<String> iterator = node.fieldNames() ; iterator.hasNext() ;) {
-                String pattern = iterator.next();
-                futures.put(pattern, es.submit(() -> listDiagsByTime(dataSource, pattern, zone)));
+            ZoneId zone = ZoneId.of(timeZoneName);
+            ObjectNode obj = O.createObjectNode();
+            JsonNode ret = obj;
+            JsonNode node = createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows);
+            if (node.isObject()) {
+                HashMap<String, Future<JsonNode>> futures = new HashMap<>();
+                for (Iterator<String> iterator = node.fieldNames() ; iterator.hasNext() ;) {
+                    String pattern = iterator.next();
+                    futures.put(pattern, es.submit(() -> listDiagsByTime(dataSource, pattern, zone)));
+                }
+                for (Map.Entry<String, Future<JsonNode>> entry : futures.entrySet()) {
+                    obj.set(entry.getKey(), entry.getValue().get());
+                }
+            } else {
+                ret = node;
             }
-            for (Map.Entry<String, Future<JsonNode>> entry : futures.entrySet()) {
-                obj.set(entry.getKey(), entry.getValue().get());
-            }
-        } else {
-            ret = node;
-        }
             return Response.ok().entity(O.writeValueAsString(ret)).build();
         } catch (InterruptedException | ExecutionException ex) {
             log.error("Error getting queue status: {}", ex.getMessage());

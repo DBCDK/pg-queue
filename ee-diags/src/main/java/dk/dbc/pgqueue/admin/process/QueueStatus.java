@@ -45,7 +45,8 @@ public class QueueStatus {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response get(@QueryParam("ignore") @DefaultValue("") String ignore) {
+    public Response get(@QueryParam("ignore") @DefaultValue("") String ignore,
+                        @QueryParam("force") String force) {
         Set<String> ignoreQueues = Arrays.stream(ignore.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -54,7 +55,8 @@ public class QueueStatus {
                                    config.getMaxCacheAge(),
                                    config.getDiagPercentMatch(),
                                    config.getDiagCollapseMaxRows(),
-                                   ignoreQueues);
+                                   ignoreQueues,
+                                   force == null);
     }
 
 }
