@@ -204,16 +204,25 @@ class JobWorker<T> implements Runnable {
         List<String> messages = new ArrayList<>(3);
         for (Throwable tw = ex ; tw != null && messages.size() < 3 ; tw = tw.getCause()) {
             String message = tw.getMessage();
-            if (message != null && !message.isEmpty()) {
+            if (message != null && !message.isEmpty() && !isMessageInList(message, messages)) {
                 messages.add(message);
             }
         }
-        if(messages.isEmpty()) {
+        if (messages.isEmpty()) {
             messages = Collections.singletonList("Anonymous " + ex.getClass().getSimpleName());
         }
         String message = String.join(", ", messages);
         log.debug("Exception message is: {}", message);
         return message;
+    }
+
+    private boolean isMessageInList(String message, List<String> messages) {
+        for (String stored : messages) {
+            if (stored.contains(message)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
