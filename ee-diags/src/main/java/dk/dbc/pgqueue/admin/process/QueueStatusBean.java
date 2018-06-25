@@ -31,6 +31,7 @@ import javax.ejb.LocalBean;
 import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
 import javax.sql.DataSource;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +87,11 @@ public class QueueStatusBean {
         log.info("getQueueStatus called");
         try {
             String queueStatus = queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows, maxCacheAge, ignoreQueues, force);
-            return Response.ok().entity(queueStatus).build();
+            return Response.ok()
+                    .entity(queueStatus)
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
         } catch (InterruptedException | ExecutionException ex) {
             log.error("Error getting queue status: {}", ex.getMessage());
             log.debug("Error getting queue status: ", ex);
@@ -213,7 +218,11 @@ public class QueueStatusBean {
             } else {
                 ret = node;
             }
-            return Response.ok().entity(O.writeValueAsString(ret)).build();
+            return Response.ok()
+                    .entity(O.writeValueAsString(ret))
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
         } catch (InterruptedException | ExecutionException ex) {
             log.error("Error getting queue status: {}", ex.getMessage());
             log.debug("Error getting queue status: ", ex);
