@@ -60,6 +60,7 @@ public interface QueueWorker {
 
     /**
      * Builder method for QueueWorker instance
+     *
      * @param <T> Job type
      */
     class Builder<T> {
@@ -68,6 +69,7 @@ public interface QueueWorker {
 
         private final QueueStorageAbstraction<T> storageAbstraction;
         private Integer maxTries;
+        private Long window;
         private Long emptyQueueSleep;
         private Long maxQueryTime;
         private Integer rescanEvery;
@@ -83,6 +85,7 @@ public interface QueueWorker {
         private Builder(QueueStorageAbstraction<T> storageAbstraction) {
             this.storageAbstraction = storageAbstraction;
             this.maxTries = null;
+            this.window = null;
             this.emptyQueueSleep = null;
             this.maxQueryTime = null;
             this.rescanEvery = null;
@@ -130,6 +133,17 @@ public interface QueueWorker {
          */
         public Builder<T> maxTries(int maxTries) {
             this.maxTries = setOrFail(this.maxTries, maxTries, "maxTries");
+            return this;
+        }
+
+        /**
+         * Set window in ms for uncommitted transactions
+         *
+         * @param window how many ms are looked back in time
+         * @return self
+         */
+        public Builder<T> window(long window) {
+            this.window = setOrFail(this.window, window, "window");
             return this;
         }
 
@@ -303,7 +317,8 @@ public interface QueueWorker {
                                            new Throttle(or(databaseConnectThrottle, "")),
                                            new Throttle(or(failureThrottle, "")),
                                            executor,
-                                           or(metricRegistry, new MetricRegistry()));
+                                           or(metricRegistry, new MetricRegistry()),
+                                           or(window, 100L));
             return new Harvester(config, dataSource, consumers);
         }
 
