@@ -55,7 +55,7 @@ class Harvester<T> implements QueueWorker {
 
     static class SqlCurrentTimestamp {
 
-        static final String SQL = "SELECT clock_timestamp() - 500 * INTERVAL '1 MILLISECONS'";
+        static final String SQL = "SELECT clock_timestamp() - 500 * INTERVAL '1 MILLISECONDS'";
     }
 
     static class SqlSelect {
@@ -64,7 +64,7 @@ class Harvester<T> implements QueueWorker {
                                           " FROM queue" +
                                           " WHERE ctid = (SELECT ctid FROM queue WHERE consumer=?" +
                                           " AND dequeueAfter<=clock_timestamp()" +
-                                          " AND dequeueAfter>=?" +
+                                          " AND dequeueAfter>=?::TIMESTAMP - INTERVAL '%d MILLISECONDS'" +
                                           " ORDER BY consumer, dequeueAfter" + // hit existing index
                                           " FOR UPDATE SKIP LOCKED" +
                                           " LIMIT 1)" +
@@ -114,7 +114,7 @@ class Harvester<T> implements QueueWorker {
     private final String postponeSql;
     private final String failedSql;
     private final String deleteDuplicateSql;
-private final int duplicateDeleteColumnsCount;
+    private final int duplicateDeleteColumnsCount;
 
     final Timer databaseconnectTimer;
     final Timer dequeueTimer;
@@ -133,7 +133,7 @@ private final int duplicateDeleteColumnsCount;
         this.dataSource = dataSource;
         this.running = false;
         String jobColumns = String.join(", ", config.storageAbstraction.columnList());
-        selectSql = String.format(SqlSelect.SQL, jobColumns);
+        selectSql = String.format(SqlSelect.SQL, config.window, jobColumns);
         this.workers = consumers.stream()
                 .map(c -> new JobWorker<>(c, this))
                 .collect(Collectors.toList());

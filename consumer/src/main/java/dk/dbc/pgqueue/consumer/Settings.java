@@ -38,6 +38,7 @@ class Settings<T> {
     final QueueStorageAbstraction<T> storageAbstraction;
     final DeduplicateAbstraction<T> deduplicateAbstraction;
     final int maxTries;
+    final long window;
     final long emptyQueueSleep;
     final long maxQueryTime;
     final int fullScanEvery;
@@ -47,8 +48,9 @@ class Settings<T> {
     final ExecutorService executor;
     final MetricRegistry metricRegistry;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry, long window) {
         this.maxTries = maxTries;
+        this.window = window;
         this.emptyQueueSleep = emptyQueueSleep;
         this.maxQueryTime = maxQueryTime;
         this.consumerNames = Collections.unmodifiableList(consumerNames);
