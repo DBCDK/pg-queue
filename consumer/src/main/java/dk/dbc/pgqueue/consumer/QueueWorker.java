@@ -32,6 +32,10 @@ import javax.sql.DataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import dk.dbc.pgqueue.DeduplicateAbstraction;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -66,6 +70,29 @@ public interface QueueWorker {
     class Builder<T> {
 
         private static final Logger log = LoggerFactory.getLogger(Builder.class);
+
+        public static final String ENV_MAX_TRIES = "MAX_TRIES";
+        public static final String ENV_QUEUE_WINDOW = "QUEUE_WINDOW";
+        public static final String ENV_EMPTY_QUEUE_SLEEP = "QUEUE_EMPTY_SLEEP";
+        public static final String ENV_MAX_QUERY_TIME = "MAX_QUERY_TIME";
+        public static final String ENV_RESCAN_EVERY = "RESCAN_EVERY";
+        public static final String ENV_IDLE_RESCAN_EVERY = "IDLE_RESCAN_EVERY";
+        public static final String ENV_DATABASE_THROTTLE = "DATABASE_THROTTLE";
+        public static final String ENV_FAILURE_THROTTLE = "FAILURE_THROTTLE";
+        public static final String ENV_QUEUES = "QUEUES";
+
+        private static final Map<String, String> DEFAULT_ENVIRONMENT =
+                Arrays.asList(ENV_MAX_TRIES + "=3",
+                              ENV_QUEUE_WINDOW + "=500ms",
+                              ENV_EMPTY_QUEUE_SLEEP + "=10s",
+                              ENV_MAX_QUERY_TIME + "=250ms",
+                              ENV_RESCAN_EVERY + "=500",
+                              ENV_IDLE_RESCAN_EVERY + "=5",
+                              ENV_DATABASE_THROTTLE + "=1/5s,3/m,5/10m",
+                              ENV_FAILURE_THROTTLE + "=2/100ms,3/s,5/m")
+                        .stream()
+                        .map(s -> s.split("=", 2))
+                        .collect(Collectors.toMap(s -> s[0], s -> s[1]));
 
         private final QueueStorageAbstraction<T> storageAbstraction;
         private Integer maxTries;
@@ -230,6 +257,85 @@ public interface QueueWorker {
         }
 
         /**
+         * Set missing values from environment
+         * <p>
+         * You cannot set values after this, they might fail at runtime with
+         * value has already been set
+         *
+         * @return self
+         */
+        public Builder<T> fromEnv() {
+            return fromEnv(System.getenv());
+        }
+
+        /**
+         * Set missing values from environment using default values
+         * <p>
+         * You cannot set values after this, they might fail at runtime with
+         * value has already been set
+         *
+         * @return self
+         */
+        public Builder<T> fromEnvWithDefaults() {
+            return fromEnvWithDefaults(DEFAULT_ENVIRONMENT);
+        }
+
+        /**
+         * Set missing values from environment using supplied default values
+         * <p>
+         * You cannot set values after this, they might fail at runtime with
+         * value has already been set
+         *
+         * @param defaultValues map of fallback values
+         * @return self
+         */
+        public Builder<T> fromEnvWithDefaults(Map<String, String> defaultValues) {
+            Map<String, String> env = new HashMap<>(defaultValues);
+            env.putAll(System.getenv());
+            return fromEnv(env);
+        }
+
+        /**
+         * Set missing values from a map
+         *
+         * @param env the environment to take values from
+         * @return self
+         */
+        private Builder<T> fromEnv(Map<String, String> env) {
+            String s;
+            if (maxTries == null && ( s = env.get(ENV_MAX_TRIES) ) != null) {
+                maxTries = Integer.max(1, Integer.parseInt(s));
+            }
+            if (window == null && ( s = env.get(ENV_QUEUE_WINDOW) ) != null) {
+                window = milliseconds(s);
+            }
+            if (emptyQueueSleep == null && ( s = env.get(ENV_EMPTY_QUEUE_SLEEP) ) != null) {
+                emptyQueueSleep = milliseconds(s);
+            }
+            if (maxQueryTime == null && ( s = env.get(ENV_MAX_QUERY_TIME) ) != null) {
+                maxQueryTime = milliseconds(s);
+            }
+            if (rescanEvery == null && ( s = env.get(ENV_RESCAN_EVERY) ) != null) {
+                rescanEvery = Integer.max(1, Integer.parseInt(s));
+            }
+            if (idleRescanEvery == null && ( s = env.get(ENV_IDLE_RESCAN_EVERY) ) != null) {
+                idleRescanEvery = Integer.max(1, Integer.parseInt(s));
+            }
+            if (failureThrottle == null && ( s = env.get(ENV_FAILURE_THROTTLE) ) != null) {
+                failureThrottle = s;
+            }
+            if (databaseConnectThrottle == null && ( s = env.get(ENV_DATABASE_THROTTLE) ) != null) {
+                databaseConnectThrottle = s;
+            }
+            if (consumerNames == null && ( s = env.get(ENV_QUEUES) ) != null) {
+                consumerNames = Arrays.stream(s.split("[,\\s]*"))
+                        .filter(queue -> !queue.isEmpty())
+                        .collect(Collectors.toList());
+            }
+            return this;
+        }
+
+        /**
          * Set the executor, that the processing should run in.
          * <p>
          * If none is set, a fixed threadpool with matching threads number to
@@ -343,6 +449,26 @@ public interface QueueWorker {
                 return t;
             }
             throw new IllegalArgumentException(message);
+        }
+
+        static long milliseconds(String spec) {
+            String[] split = spec.split("(?<=\\d)(?=\\D)");
+            if (split.length == 2) {
+                long units = Long.parseUnsignedLong(split[0], 10);
+                switch (split[1].toLowerCase(Locale.ROOT).trim()) {
+                    case "ms":
+                        return TimeUnit.MILLISECONDS.toMillis(units);
+                    case "s":
+                        return TimeUnit.SECONDS.toMillis(units);
+                    case "m":
+                        return TimeUnit.MINUTES.toMillis(units);
+                    case "h":
+                        return TimeUnit.HOURS.toMillis(units);
+                    default:
+                        break;
+                }
+            }
+            throw new IllegalArgumentException("Invalid time spec: " + spec);
         }
 
     }
