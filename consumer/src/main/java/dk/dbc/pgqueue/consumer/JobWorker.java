@@ -82,6 +82,12 @@ class JobWorker<T> implements Runnable {
                 } else {
                     process(job);
                 }
+            } catch (SQLException ex) {
+                log.error("Error fetching job: {}", ex.getMessage());
+                log.debug("Error fetching job:", ex);
+                log.info("Disconnecting for database");
+                relesePreparesStmts();
+                releaseConnection();
             } catch (Exception ex) {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
