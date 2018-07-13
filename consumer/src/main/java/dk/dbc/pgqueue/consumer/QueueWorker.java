@@ -328,7 +328,7 @@ public interface QueueWorker {
                 databaseConnectThrottle = s;
             }
             if (consumerNames == null && ( s = env.get(ENV_QUEUES) ) != null) {
-                consumerNames = Arrays.stream(s.split("[,\\s]*"))
+                consumerNames = Arrays.stream(s.split("[,\\s]+"))
                         .filter(queue -> !queue.isEmpty())
                         .collect(Collectors.toList());
             }
