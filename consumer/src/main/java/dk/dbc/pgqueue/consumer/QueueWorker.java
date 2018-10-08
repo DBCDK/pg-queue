@@ -73,7 +73,7 @@ public interface QueueWorker {
 
         public static final String ENV_MAX_TRIES = "MAX_TRIES";
         public static final String ENV_QUEUE_WINDOW = "QUEUE_WINDOW";
-        public static final String ENV_EMPTY_QUEUE_SLEEP = "QUEUE_EMPTY_SLEEP";
+        public static final String ENV_EMPTY_QUEUE_SLEEP = "EMPTY_QUEUE_SLEEP";
         public static final String ENV_MAX_QUERY_TIME = "MAX_QUERY_TIME";
         public static final String ENV_RESCAN_EVERY = "RESCAN_EVERY";
         public static final String ENV_IDLE_RESCAN_EVERY = "IDLE_RESCAN_EVERY";
