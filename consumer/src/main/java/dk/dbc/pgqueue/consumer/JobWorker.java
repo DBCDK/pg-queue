@@ -148,7 +148,7 @@ class JobWorker<T> implements Runnable {
      *
      * @param job The job to process
      */
-    private void process(JobWithMetaData<T> job) {
+    private void process(JobWithMetaData<T> job) throws SQLException {
         boolean success = false;
         try {
             Savepoint savepoint = connection.setSavepoint();
@@ -199,8 +199,8 @@ class JobWorker<T> implements Runnable {
         } catch (SQLException ex) {
             success = false; // in case a commit after a succesfull job fails
             log.error("Rolling back because of: {}", ex.getMessage());
-            log.debug("Rolling back because of:", ex);
             sql(() -> connection.rollback(), "Error rolling back");
+            throw ex;
         } finally {
             harvester.settings.failureThrottle.register(success);
         }
