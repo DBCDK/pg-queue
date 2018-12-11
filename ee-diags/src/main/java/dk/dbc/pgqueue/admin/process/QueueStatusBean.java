@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -17,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.annotation.Resource;
 import javax.ejb.LocalBean;
@@ -167,19 +172,20 @@ public class QueueStatusBean {
                 props.put("expires", postTime.plusSeconds(seconds).toString());
             }
 
-            QUEUE_STATUS.putPOJO("queue-max-age-skip-list", new ArrayList<>(ignoreQueues));
+            IgnoreQueues ignore = new IgnoreQueues(ignoreQueues);
             JsonNode queueNode = QUEUE_STATUS.get("queue");
             int queueMaxAge = 0;
             if (queueNode.isObject()) {
                 for (Iterator<Map.Entry<String, JsonNode>> iterator = ( (ObjectNode) queueNode ).fields() ; iterator.hasNext() ;) {
                     Map.Entry<String, JsonNode> queueEntry = iterator.next();
-                    if (!ignoreQueues.contains(queueEntry.getKey())) {
+                    if (ignore.keepOrIgnore(queueEntry.getKey())) {
                         JsonNode node = queueEntry.getValue();
                         int age = node.get("age").asInt();
                         queueMaxAge = Integer.max(queueMaxAge, age);
                     }
                 }
             }
+            QUEUE_STATUS.putPOJO("queue-max-age-skip-list", ignore.getIgnored());
             QUEUE_STATUS.put("queue-max-age", queueMaxAge);
             return O.writeValueAsString(QUEUE_STATUS);
         }
@@ -409,4 +415,85 @@ public class QueueStatusBean {
                 .collect(Collectors.joining());
     }
 
+    static class IgnoreQueues {
+
+        private final Pattern pattern;
+        private final HashSet<String> ignored;
+
+        public IgnoreQueues(Set<String> patterns) {
+            String regex = "(" + patterns.stream()
+                           .map(IgnoreQueues::regexOf)
+                           .collect(Collectors.joining("|")) + ")";
+            log.debug("ignore regex is: {}", regex);
+            this.pattern = Pattern.compile(regex);
+            this.ignored = new HashSet<>();
+        }
+
+        boolean keepOrIgnore(String queue) {
+            boolean match = pattern.matcher(queue).matches();
+            if (match)
+                ignored.add(queue);
+            return !match;
+        }
+
+        public HashSet<String> getIgnored() {
+            return ignored;
+        }
+
+        private static String regexOf(String pattern) {
+            try {
+                StringBuilder sb = new StringBuilder();
+
+                StringReader r = new StringReader(pattern);
+                for (;;) {
+                    r.mark(1);
+                    int c = r.read();
+                    switch (c) {
+                        case -1:
+                            return sb.toString();
+                        case '?':
+                            sb.append(".");
+                            break;
+                        case '*':
+                            sb.append(".*");
+                            break;
+                        default:
+                            r.reset();
+                            sb.append(Pattern.quote(extractStringPart(r)));
+                            break;
+                    }
+                }
+            } catch (IOException ex) {
+                log.error("Error building regexp from: {}: {}", pattern, ex.getMessage());
+                log.debug("Error building regexp from: {}: ", pattern, ex);
+            }
+            return "";
+        }
+
+        private static String extractStringPart(StringReader r) throws IOException {
+            StringWriter w = new StringWriter();
+            for (;;) {
+                r.mark(1);
+                int c = r.read();
+                switch (c) {
+                    case -1:
+                        return w.toString();
+                    case '?':
+                    case '*':
+                        r.reset();
+                        return w.toString();
+                    case '\\':
+                        c = r.read();
+                        if (c == -1)
+                            return w.toString();
+                        w.append((char) c);
+                        break;
+                    default:
+                        w.append((char) c);
+                        break;
+                }
+            }
+        }
+
+    }
 }
