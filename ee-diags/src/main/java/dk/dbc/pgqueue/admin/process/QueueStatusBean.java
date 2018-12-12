@@ -213,14 +213,18 @@ public class QueueStatusBean {
             JsonNode ret = obj;
             JsonNode node = createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows);
             if (node.isObject()) {
-                HashMap<String, Future<JsonNode>> futures = new HashMap<>();
+                Map<String, Future<Map<String, Integer>>> futures = new HashMap<>();
                 for (Iterator<String> iterator = node.fieldNames() ; iterator.hasNext() ;) {
                     String pattern = iterator.next();
                     futures.put(pattern, es.submit(() -> listDiagsByTime(dataSource, pattern, zone)));
                 }
-                for (Map.Entry<String, Future<JsonNode>> entry : futures.entrySet()) {
-                    obj.set(entry.getKey(), entry.getValue().get());
-                }
+                DiagsNode diagsNode = new DiagsNode(obj);
+                Map<String, Map<String, Integer>> prDiag = diagToTimestampToCount(futures);
+                prDiag.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(diagsNode::putInObject);
+
+                Map<String, Map<String, Integer>> prTime = timestampToDiagToCount(prDiag);
+                prTime.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(diagsNode::putInObject);
+
             } else {
                 ret = node;
             }
@@ -237,6 +241,37 @@ public class QueueStatusBean {
             log.error("Error getting queue status: {}", ex.getMessage());
             log.debug("Error getting queue status: ", ex);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private Map<String, Map<String, Integer>> timestampToDiagToCount(Map<String, Map<String, Integer>> prDiag) {
+        Map<String, Map<String, Integer>> prTime = new HashMap<>();
+        prDiag.forEach((diag, diags) ->
+                diags.forEach((timestamp, count) ->
+                        prTime.computeIfAbsent(timestamp, x -> new HashMap<>())
+                                .put(diag, count)));
+        return prTime;
+    }
+
+    private Map<String, Map<String, Integer>> diagToTimestampToCount(Map<String, Future<Map<String, Integer>>> futures) throws InterruptedException, ExecutionException {
+        Map<String, Map<String, Integer>> prDiag = new HashMap<>();
+        for (Map.Entry<String, Future<Map<String, Integer>>> entry : futures.entrySet()) {
+            prDiag.put(entry.getKey(), entry.getValue().get());
+        }
+        return prDiag;
+    }
+
+    private static class DiagsNode {
+
+        private final ObjectNode obj;
+
+        public DiagsNode(ObjectNode obj) {
+            this.obj = obj;
+        }
+
+        private void putInObject(Map.Entry<String, Map<String, Integer>> e) {
+            ObjectNode node = obj.with(e.getKey());
+            e.getValue().forEach(node::put);
         }
     }
 
@@ -307,8 +342,8 @@ public class QueueStatusBean {
         return null;
     }
 
-    private JsonNode listDiagsByTime(DataSource dataSource, String pattern, ZoneId zone) {
-        ObjectNode obj = O.createObjectNode();
+    private HashMap<String, Integer> listDiagsByTime(DataSource dataSource, String pattern, ZoneId zone) {
+        HashMap<String, Integer> distribution = new HashMap<>();
         String likePattern = pattern.replaceAll("([_%])", "\\$1").replaceAll("\\*", "%");
         log.debug("pattern = {}; likePattern = {}", pattern, likePattern);
         try (Connection connection = dataSource.getConnection() ;
@@ -316,15 +351,16 @@ public class QueueStatusBean {
             stmt.setString(1, likePattern);
             try (ResultSet resultSet = stmt.executeQuery()) {
                 while (resultSet.next()) {
-                    obj.put(resultSet.getTimestamp(1).toInstant().atZone(zone).toString(), resultSet.getInt(2));
+                    distribution.put(resultSet.getTimestamp(1).toInstant().atZone(zone).toString(), resultSet.getInt(2));
                 }
             }
-            return obj;
+            return distribution;
         } catch (SQLException ex) {
             log.error("Sql error grouping diags by time: {}", ex.getMessage());
             log.debug("Sql error grouping diags by time: ", ex);
-            return new TextNode("SQL Exception");
+            distribution.put("SQLException", -1);
         }
+        return distribution;
     }
 
     private void addToDiags(HashMap<ArrayList<String>, AtomicInteger> accumulated, String text, int diagPercentMatch) {
