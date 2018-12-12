@@ -220,10 +220,14 @@ public class QueueStatusBean {
                 }
                 DiagsNode diagsNode = new DiagsNode(obj);
                 Map<String, Map<String, Integer>> prDiag = diagToTimestampToCount(futures);
-                prDiag.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(diagsNode::putInObject);
+                prDiag.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(diagsNode::putInObject);
 
                 Map<String, Map<String, Integer>> prTime = timestampToDiagToCount(prDiag);
-                prTime.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(diagsNode::putInObject);
+                prTime.entrySet().stream()
+                        .sorted(Map.Entry.comparingByKey())
+                        .forEach(diagsNode::putInObject);
 
             } else {
                 ret = node;
@@ -269,10 +273,14 @@ public class QueueStatusBean {
             this.obj = obj;
         }
 
-        private void putInObject(Map.Entry<String, Map<String, Integer>> e) {
-            ObjectNode node = obj.with(e.getKey());
-            e.getValue().forEach(node::put);
+        private void putInObject(Map.Entry<String, Map<String, Integer>> entry) {
+            ObjectNode node = obj.with(entry.getKey());
+            entry.getValue().entrySet()
+                    .stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(e -> node.put(e.getKey(), e.getValue()));
         }
+
     }
 
     private JsonNode createQueueStatusNode(DataSource dataSource) {
