@@ -63,6 +63,13 @@ public interface QueueWorker {
     void awaitTermination(long timeout, TimeUnit tu);
 
     /**
+     * Accessor for {@link QueueHealth#hungThreads()}
+     *
+     * @return list of threads that hangs in a database connection
+     */
+    List<String> hungThreads();
+
+    /**
      * Builder method for QueueWorker instance
      *
      * @param <T> Job type
@@ -108,6 +115,7 @@ public interface QueueWorker {
         private ExecutorService executor;
         private MetricRegistry metricRegistry;
         private DeduplicateAbstraction<T> deduplicateAbstraction;
+        private QueueHealth health;
 
         private Builder(QueueStorageAbstraction<T> storageAbstraction) {
             this.storageAbstraction = storageAbstraction;
@@ -124,6 +132,7 @@ public interface QueueWorker {
             this.executor = null;
             this.metricRegistry = null;
             this.deduplicateAbstraction = null;
+            this.health = null;
         }
 
         /**
@@ -350,6 +359,17 @@ public interface QueueWorker {
         }
 
         /**
+         * Set the health instance, that database should report in.
+         *
+         * @param health the health instance
+         * @return self
+         */
+        public Builder<T> health(QueueHealth health) {
+            this.health = setOrFail(this.health, health, "health");
+            return this;
+        }
+
+        /**
          * Set where to register performance stats
          *
          * @param metricRegistry the registry
@@ -406,6 +426,9 @@ public interface QueueWorker {
             if (executor == null) {
                 executor = Executors.newFixedThreadPool(consumers.size());
             }
+            if (health == null) {
+                health = new QueueHealth();
+            }
             if (metricRegistry == null) {
                 log.warn("unset metricRegistry");
             }
@@ -424,7 +447,8 @@ public interface QueueWorker {
                                            new Throttle(or(failureThrottle, "")),
                                            executor,
                                            or(metricRegistry, new MetricRegistry()),
-                                           or(window, 100L));
+                                           or(window, 100L),
+                                           health);
             return new Harvester(config, dataSource, consumers);
         }
 

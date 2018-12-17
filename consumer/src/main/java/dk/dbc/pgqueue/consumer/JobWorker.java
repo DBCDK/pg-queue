@@ -43,6 +43,7 @@ class JobWorker<T> implements Runnable {
     private final JobConsumer<T> consumer;
     private final Harvester<T> harvester;
     private final HashMap<String, Timestamp> timestamps = new HashMap<>();
+    private final QueueHealth health;
     private Connection connection;
     private PreparedStatement timestampStmt;
     private PreparedStatement clockStmt;
@@ -54,7 +55,7 @@ class JobWorker<T> implements Runnable {
     private int fullScanCounter;
     private Thread self;
 
-    JobWorker(JobConsumer<T> consumer, Harvester<T> harvester) {
+    JobWorker(JobConsumer<T> consumer, Harvester<T> harvester, QueueHealth health) {
         this.consumer = consumer;
         this.harvester = harvester;
         this.connection = null;
@@ -63,6 +64,7 @@ class JobWorker<T> implements Runnable {
         this.postponeStmt = null;
         this.failedStmt = null;
         this.fullScanCounter = harvester.settings.fullScanEvery;
+        this.health = health;
     }
 
     /**
@@ -295,7 +297,8 @@ class JobWorker<T> implements Runnable {
      */
     private ResultSet timedSelect(String queueName, Timestamp timestamp) throws SQLException {
         PreparedStatement stmt = getSelectStmt(queueName, timestamp);
-        try (Timer.Context time = harvester.dequeueTimer.time()) {
+        try (Timer.Context time = harvester.dequeueTimer.time() ;
+             QueueHealth.Context call = health.databaseCall()) {
             return stmt.executeQuery();
         }
     }
@@ -312,7 +315,8 @@ class JobWorker<T> implements Runnable {
         if (stmt == null) {
             return null;
         }
-        try (Timer.Context time = harvester.deleteDuplicateTimer.time()) {
+        try (Timer.Context time = harvester.deleteDuplicateTimer.time() ;
+             QueueHealth.Context call = health.databaseCall()) {
             return stmt.executeQuery();
         }
     }
@@ -326,7 +330,8 @@ class JobWorker<T> implements Runnable {
     private void retryJob(JobWithMetaData<T> job) throws SQLException {
         log.debug("retrying job");
         int rows;
-        try (Timer.Context time = harvester.retryTimer.time()) {
+        try (Timer.Context time = harvester.retryTimer.time() ;
+             QueueHealth.Context call = health.databaseCall()) {
             rows = getRetryStmt(job).executeUpdate();
         }
         if (rows != 1) {
@@ -344,7 +349,8 @@ class JobWorker<T> implements Runnable {
     private void postponeJob(JobWithMetaData<T> job, long postponedMs) throws SQLException {
         log.debug("postpone job for {}ms", postponedMs);
         int rows;
-        try (Timer.Context time = harvester.postponeTimer.time()) {
+        try (Timer.Context time = harvester.postponeTimer.time() ;
+             QueueHealth.Context call = health.databaseCall()) {
             rows = getPostponeStmt(job, postponedMs).executeUpdate();
         }
         if (rows != 1) {
@@ -367,7 +373,8 @@ class JobWorker<T> implements Runnable {
                          stmt,
                          Harvester.SqlFailed.NEXT_POS);
         int rows;
-        try (Timer.Context time = harvester.failureTimer.time()) {
+        try (Timer.Context time = harvester.failureTimer.time() ;
+             QueueHealth.Context call = health.databaseCall()) {
             rows = stmt.executeUpdate();
         }
         if (rows != 1) {
@@ -443,12 +450,14 @@ class JobWorker<T> implements Runnable {
     private Timestamp getTimestampFromDb(String queue) {
         long before = System.currentTimeMillis();
         try (Timer.Context time = harvester.timestampTimer.time()) {
-            try (ResultSet resultSet = getTimestampStmt(queue).executeQuery()) {
+            try (QueueHealth.Context call = health.databaseCall() ;
+                 ResultSet resultSet = getTimestampStmt(queue).executeQuery()) {
                 if (resultSet.next()) {
                     return resultSet.getTimestamp(1);
                 }
             }
-            try (ResultSet resultSet = getClockStmt().executeQuery()) {
+            try (QueueHealth.Context call = health.databaseCall() ;
+                 ResultSet resultSet = getClockStmt().executeQuery()) {
                 if (resultSet.next()) {
                     return resultSet.getTimestamp(1);
                 }
@@ -476,7 +485,9 @@ class JobWorker<T> implements Runnable {
      */
     private PreparedStatement getTimestampStmt(String queue) throws SQLException {
         if (timestampStmt == null) {
-            timestampStmt = connection.prepareStatement(Harvester.SqlQueueTimestamp.SQL);
+            try (QueueHealth.Context call = health.databaseCall()) {
+                timestampStmt = connection.prepareStatement(Harvester.SqlQueueTimestamp.SQL);
+            }
         }
         timestampStmt.setString(Harvester.SqlQueueTimestamp.CONSUMER_POS, queue);
         return timestampStmt;
@@ -490,7 +501,9 @@ class JobWorker<T> implements Runnable {
      */
     private PreparedStatement getClockStmt() throws SQLException {
         if (clockStmt == null) {
-            clockStmt = connection.prepareStatement(Harvester.SqlCurrentTimestamp.SQL);
+            try (QueueHealth.Context call = health.databaseCall()) {
+                clockStmt = connection.prepareStatement(Harvester.SqlCurrentTimestamp.SQL);
+            }
         }
         return clockStmt;
     }
@@ -505,7 +518,9 @@ class JobWorker<T> implements Runnable {
      */
     private PreparedStatement getSelectStmt(String queue, Timestamp timestamp) throws SQLException {
         if (selectStmt == null) {
-            selectStmt = connection.prepareStatement(harvester.getSelectSql());
+            try (QueueHealth.Context call = health.databaseCall()) {
+                selectStmt = connection.prepareStatement(harvester.getSelectSql());
+            }
         }
         selectStmt.setString(Harvester.SqlSelect.CONSUMER_POS, queue);
         selectStmt.setTimestamp(Harvester.SqlSelect.TIMESTAMP_POS, timestamp);
@@ -522,7 +537,9 @@ class JobWorker<T> implements Runnable {
      */
     private PreparedStatement getRetryStmt(JobWithMetaData<T> job) throws SQLException {
         if (retryStmt == null) {
-            retryStmt = connection.prepareStatement(harvester.getRetrySql());
+            try (QueueHealth.Context call = health.databaseCall()) {
+                retryStmt = connection.prepareStatement(harvester.getRetrySql());
+            }
         }
         job.save(retryStmt, 1);
         harvester.settings.storageAbstraction
@@ -540,7 +557,9 @@ class JobWorker<T> implements Runnable {
      */
     private PreparedStatement getPostponeStmt(JobWithMetaData<T> job, long milliseconds) throws SQLException {
         if (postponeStmt == null) {
-            postponeStmt = connection.prepareStatement(harvester.getPostponeSql());
+            try (QueueHealth.Context call = health.databaseCall()) {
+                postponeStmt = connection.prepareStatement(harvester.getPostponeSql());
+            }
         }
         job.saveDelayed(postponeStmt, 1, milliseconds);
         harvester.settings.storageAbstraction
@@ -558,7 +577,9 @@ class JobWorker<T> implements Runnable {
      */
     private PreparedStatement getFailedStmt(JobWithMetaData<T> job, String diag) throws SQLException {
         if (failedStmt == null) {
-            failedStmt = connection.prepareStatement(harvester.getFailedSql());
+            try (QueueHealth.Context call = health.databaseCall()) {
+                failedStmt = connection.prepareStatement(harvester.getFailedSql());
+            }
         }
         failedStmt.setString(Harvester.SqlFailed.CONSUMER_POS, job.getConsumer());
         failedStmt.setTimestamp(Harvester.SqlFailed.QUEUED_POS, job.getQueued());
@@ -578,7 +599,9 @@ class JobWorker<T> implements Runnable {
             if (harvester.getDeleteDuplicateSql() == null) {
                 return null;
             }
-            deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
+            try (QueueHealth.Context call = health.databaseCall()) {
+                deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
+            }
         }
         deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS_1, job.getConsumer());
         deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS_2, job.getConsumer());

@@ -135,7 +135,7 @@ class Harvester<T> implements QueueWorker {
         String jobColumns = String.join(", ", config.storageAbstraction.columnList());
         selectSql = String.format(SqlSelect.SQL, config.window, jobColumns);
         this.workers = consumers.stream()
-                .map(c -> new JobWorker<>(c, this))
+                .map(c -> new JobWorker<>(c, this, config.health))
                 .collect(Collectors.toList());
         int positionalArgumentsCount = config.storageAbstraction.columnList().length;
         String jobSqlPlaceholders = String.join(
@@ -212,6 +212,11 @@ class Harvester<T> implements QueueWorker {
             log.error("Error waiting for harvester-threads to finish: {}", ex.getMessage());
             log.debug("Error waiting for harvester-threads to finish:", ex);
         }
+    }
+
+    @Override
+    public List<String> hungThreads() {
+        return settings.health.hungThreads();
     }
 
     /**
