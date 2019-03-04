@@ -173,11 +173,13 @@ class JobWorker<T> implements Runnable {
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
             } catch (FatalQueueError ex) {
                 log.debug("Fatal error: {}", ex.getMessage());
+                log.debug("Fatal error: ", ex);
                 connection.rollback(savepoint);
                 connection.commit(); // In case of failJob fails
                 failJob(job, getExceptionMessage(ex));
             } catch (PostponedNonFatalQueueError ex) {
                 log.debug("Non Fatal error: {} (postpone)", ex.getMessage());
+                log.debug("Non Fatal error: ", ex);
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
                     connection.commit(); // In case of failJob fails
@@ -187,6 +189,7 @@ class JobWorker<T> implements Runnable {
                 }
             } catch (NonFatalQueueError | RuntimeException ex) {
                 log.debug("Non Fatal error: {}", ex.getMessage());
+                log.debug("Non Fatal error: ", ex);
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
                     String message = getExceptionMessage(ex);
@@ -201,6 +204,7 @@ class JobWorker<T> implements Runnable {
         } catch (SQLException ex) {
             success = false; // in case a commit after a succesfull job fails
             log.error("Rolling back because of: {}", ex.getMessage());
+            log.debug("Rolling back because of: ", ex);
             sql(() -> connection.rollback(), "Error rolling back");
             throw ex;
         } finally {
