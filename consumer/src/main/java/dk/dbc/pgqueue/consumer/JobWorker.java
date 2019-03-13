@@ -128,9 +128,7 @@ class JobWorker<T> implements Runnable {
                 }
                 job = fetchJob();
             } catch (RuntimeException ex) {
-                Throwable cause = ex.getCause();
-                if(cause instanceof SQLException)
-                    throw (SQLException) cause;
+                exceptionUnwrap(ex, SQLException.class);
                 throw ex;
             }
         }
@@ -636,6 +634,23 @@ class JobWorker<T> implements Runnable {
         } catch (SQLException ex) {
             log.error("{}: {}", exceptionText, ex.getMessage());
             log.debug("{}:", exceptionText, ex);
+        }
+    }
+
+    /**
+     * Unwrap an exception, throwing it if there's any cause of this type
+     *
+     * @param <T>   Exception type
+     * @param ex    Base exception
+     * @param clazz exception class
+     * @throws T if found in caused-by
+     */
+    private static <T extends Exception> void exceptionUnwrap(Exception ex, Class<T> clazz) throws T {
+        Throwable t = ex.getCause();
+        while (t != null) {
+            if (clazz.isAssignableFrom(t.getClass()))
+                throw (T) t;
+            t = t.getCause();
         }
     }
 
