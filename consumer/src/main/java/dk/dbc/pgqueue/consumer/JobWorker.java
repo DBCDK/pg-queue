@@ -87,7 +87,7 @@ class JobWorker<T> implements Runnable {
             } catch (SQLException ex) {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
-                log.info("Disconnecting for database");
+                log.info("Disconnecting from database");
                 relesePreparesStmts();
                 releaseConnection();
             } catch (Exception ex) {
@@ -127,9 +127,11 @@ class JobWorker<T> implements Runnable {
                     setupConnection();
                 }
                 job = fetchJob();
-            } catch (SQLException ex) {
-                log.error("Error fetching job from queue: {}", ex.getMessage());
-                log.debug("Error fetching job from queue:", ex);
+            } catch (RuntimeException ex) {
+                Throwable cause = ex.getCause();
+                if(cause instanceof SQLException)
+                    throw (SQLException) cause;
+                throw ex;
             }
         }
         log.debug("job = {}", job);
