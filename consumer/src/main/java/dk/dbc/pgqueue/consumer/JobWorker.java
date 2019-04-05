@@ -308,7 +308,7 @@ class JobWorker<T> implements Runnable {
     }
 
     /**
-     * Wrap a delete duplicate in a timer
+     * Wrap a delete duplicate in a timer and holour deduplicateDisable
      *
      * @param job job to delete duplicates of
      * @return result set
@@ -319,7 +319,10 @@ class JobWorker<T> implements Runnable {
         if (stmt == null) {
             return null;
         }
+        if (!harvester.settings.deduplicateDisable.canDeduplicate())
+            return null;
         try (Timer.Context time = harvester.deleteDuplicateTimer.time() ;
+             DeduplicateDisable.Context dedupDisable = harvester.settings.deduplicateDisable.context() ;
              QueueHealth.Context call = health.databaseCall()) {
             return stmt.executeQuery();
         }

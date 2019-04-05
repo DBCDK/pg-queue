@@ -85,6 +85,7 @@ public interface QueueWorker {
         public static final String ENV_RESCAN_EVERY = "RESCAN_EVERY";
         public static final String ENV_IDLE_RESCAN_EVERY = "IDLE_RESCAN_EVERY";
         public static final String ENV_DATABASE_THROTTLE = "DATABASE_THROTTLE";
+        public static final String ENV_DEDUPLICATE_DISABLE = "DEDUPLICATE_DISABLE";
         public static final String ENV_FAILURE_THROTTLE = "FAILURE_THROTTLE";
         public static final String ENV_QUEUES = "QUEUES";
 
@@ -96,7 +97,8 @@ public interface QueueWorker {
                               ENV_RESCAN_EVERY + "=500",
                               ENV_IDLE_RESCAN_EVERY + "=5",
                               ENV_DATABASE_THROTTLE + "=1/5s,3/m,5/10m",
-                              ENV_FAILURE_THROTTLE + "=2/100ms,3/s,5/m")
+                              ENV_FAILURE_THROTTLE + "=2/100ms,3/s,5/m",
+                              ENV_DEDUPLICATE_DISABLE + "=100ms/5m")
                         .stream()
                         .map(s -> s.split("=", 2))
                         .collect(Collectors.toMap(s -> s[0], s -> s[1]));
@@ -111,6 +113,7 @@ public interface QueueWorker {
         private List<String> consumerNames;
         private DataSource dataSource;
         private String databaseConnectThrottle;
+        private DeduplicateDisable deduplicateDisable;
         private String failureThrottle;
         private ExecutorService executor;
         private MetricRegistry metricRegistry;
@@ -255,6 +258,25 @@ public interface QueueWorker {
         }
 
         /**
+         * Sets a limit/periode (both timespecs) if deduplicate takes more than
+         * limit it is disabled for periode
+         *
+         * @param spec deduplicateDisable spec ({duration}/{duraion})
+         * @return self
+         */
+        public Builder<T> deduplicateDisable(String spec) {
+            this.deduplicateDisable = setOrFail(this.deduplicateDisable, deduplicateDisableBuild(spec), "deduplicateDisable");
+            return this;
+        }
+
+        private DeduplicateDisable deduplicateDisableBuild(String spec) throws IllegalArgumentException {
+            String[] parts = spec.split("/", 2);
+            if (parts.length != 2)
+                throw new IllegalArgumentException("deduplicate disable spec: " + spec);
+            return new DeduplicateDisable(milliseconds(parts[0]), milliseconds(parts[1]));
+        }
+
+        /**
          * Throttle string, for failures in job processing
          *
          * @param failureThrottle throttle spec
@@ -340,6 +362,9 @@ public interface QueueWorker {
                 consumerNames = Arrays.stream(s.split("[,\\s]+"))
                         .filter(queue -> !queue.isEmpty())
                         .collect(Collectors.toList());
+            }
+            if (deduplicateDisable == null && ( s = env.get(ENV_DATABASE_THROTTLE) ) != null) {
+                deduplicateDisable = deduplicateDisableBuild(s);
             }
             return this;
         }
@@ -448,7 +473,8 @@ public interface QueueWorker {
                                            executor,
                                            or(metricRegistry, new MetricRegistry()),
                                            or(window, 100L),
-                                           health);
+                                           health,
+                                           or(deduplicateDisable, new DeduplicateDisable()));
             return new Harvester(config, dataSource, consumers);
         }
 
