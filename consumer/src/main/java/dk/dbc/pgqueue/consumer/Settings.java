@@ -48,8 +48,9 @@ class Settings<T> {
     final ExecutorService executor;
     final MetricRegistry metricRegistry;
     final QueueHealth health;
+    final DeduplicateDisable deduplicateDisable;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry, long window, QueueHealth health) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
         this.maxTries = maxTries;
         this.window = window;
         this.emptyQueueSleep = emptyQueueSleep;
@@ -64,5 +65,6 @@ class Settings<T> {
         this.metricRegistry = metricRegistry;
         this.idleFullScanEvery = idleFullScanEvery;
         this.health = health;
+        this.deduplicateDisable = deduplicateDisable;
     }
 }
