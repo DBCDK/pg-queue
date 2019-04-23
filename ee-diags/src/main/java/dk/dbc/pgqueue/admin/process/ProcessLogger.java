@@ -30,6 +30,7 @@ class ProcessLogger {
     private WebSocketAppender wsAppender;
     private final LoggerContext context;
     private final PatternLayoutEncoder encoder;
+    private final FileOutputStream write;
 
     ProcessLogger(String id) throws IOException {
         this(id, Level.INFO);
@@ -41,7 +42,7 @@ class ProcessLogger {
         if (this.file.delete()) {
             log.warn("removed old log file when starting new, strange ({})", this.file.getAbsolutePath());
         }
-        FileOutputStream write = new FileOutputStream(file);
+        this. write = new FileOutputStream(file);
         this.context = (LoggerContext) LoggerFactory.getILoggerFactory();
         this.logger = context.getLogger(id);
         logger.setLevel(logLevel);
@@ -67,7 +68,15 @@ class ProcessLogger {
     @SuppressWarnings("FinalizeDeclaration")
     protected void finalize() throws Throwable {
         super.finalize();
-        file.delete();
+        try {
+            write.close();
+        } catch (IOException ex) {
+            log.error("Error closing output file: {}", ex.getMessage());
+            log.debug("Error closing output file: ", ex);
+        }
+        if (!file.delete()) {
+            log.warn("could not remove log file. strange ({})", file.getAbsolutePath());
+        }
     }
 
     ch.qos.logback.classic.Logger getLog() {

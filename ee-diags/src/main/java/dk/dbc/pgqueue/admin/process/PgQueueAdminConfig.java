@@ -102,7 +102,7 @@ public class PgQueueAdminConfig {
             } else if (!diagCollapseMaxRowsNode.isNumber()) {
                 throw new EJBException("Cannot read `pg-queue-endpoint-config.json' resource: diagCollapseMaxRows not a number");
             } else {
-                log.info("Using: diagCollapseMaxRows="+diagCollapseMaxRowsNode.asText());
+                log.info("Using: diagCollapseMaxRows=" + diagCollapseMaxRowsNode.asText());
                 this.diagCollapseMaxRows = diagCollapseMaxRowsNode.asInt();
             }
 
@@ -160,7 +160,8 @@ public class PgQueueAdminConfig {
             Field field = mapper.getDeclaredField(fieldName);
             Class<?> declaringClass = field.getType();
             if (JobLogMapper.class.isAssignableFrom(declaringClass)) {
-                if (( field.getModifiers() & ( Modifier.STATIC | Modifier.FINAL ) ) == ( Modifier.STATIC | Modifier.FINAL )) {
+                int finalAndStaticModifiers = field.getModifiers() & ( Modifier.STATIC | Modifier.FINAL );
+                if (finalAndStaticModifiers == ( Modifier.STATIC | Modifier.FINAL )) {
                     return (JobLogMapper) field.get(null);
                 }
             }

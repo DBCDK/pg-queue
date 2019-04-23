@@ -4,7 +4,7 @@
 
     <groupId>dk.dbc</groupId>
     <artifactId>pg-queue</artifactId>
-    <version>1.1-SNAPSHOT</version>
+    <version>1.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <repositories>
@@ -16,8 +16,8 @@
 
     <parent>
         <groupId>dk.dbc</groupId>
-        <artifactId>dbc-pom</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <artifactId>microservice-pom</artifactId>
+        <version>latest-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
@@ -29,26 +29,22 @@
     </modules>
 
     <properties>
-        <jackson.version>2.9.7</jackson.version>
-        <slv4j.version>1.7.25</slv4j.version>
-        <logback.version>1.2.3</logback.version>
+        <hamcrest.version>1.3</hamcrest.version>
+        <mockito.version>1.10.19</mockito.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
         </dependency>
 
         <dependency>
@@ -59,12 +55,13 @@
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>
+            <version>${hamcrest.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
-            <version>1.10.19</version>
+            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -216,7 +216,7 @@ class Throttle {
          */
         private void register(long now) {
             timestamps[pos] = now + timeout;
-            pos = ( pos + 1 );
+            pos = pos + 1;
             if (pos == timestamps.length) {
                 pos = 0;
             }

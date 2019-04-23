@@ -378,20 +378,21 @@ public class QueueStatusBean {
         int lenTotalTarget = 0;
         List<String> diag = Arrays.asList(text.split("\\b"));
         int lenDiag = diag.size();
-        for (ArrayList<String> candidate : accumulated.keySet()) {
-            int lenLeft = diagLenLeft(candidate, diag);
+        for (Map.Entry<ArrayList<String>,AtomicInteger> candidate : accumulated.entrySet()) {
+            ArrayList<String> key = candidate.getKey();
+            int lenLeft = diagLenLeft(key, diag);
             if (lenLeft == lenDiag) {
-                accumulated.get(candidate).incrementAndGet();
+                candidate.getValue().incrementAndGet();
                 return;
             }
-            int lenRight = diagLenRight(candidate, diag);
+            int lenRight = diagLenRight(key, diag);
             int lenTotal = lenLeft + lenRight;
-            if (( lenTotal > lenTotalTarget ) ||
-                ( lenTotal == lenTotalTarget && lenRight > lenRightTarget )) { // Prioritize longer trailing match (failure reason)
+            if (lenTotal > lenTotalTarget ||
+                lenTotal == lenTotalTarget && lenRight > lenRightTarget) { // Prioritize longer trailing match (failure reason)
                 lenLeftTarget = lenLeft;
                 lenRightTarget = lenRight;
                 lenTotalTarget = lenTotal;
-                target = candidate;
+                target = key;
             }
         }
         if (target != null) {
