@@ -16,7 +16,7 @@ public interface JobLogMapper {
      *
      * @param resultSet job row
      * @return pattern formatted job description
-     * @throws java.sql.SQLException
+     * @throws SQLException when resultset cannot be processed
      */
     String format(ResultSet resultSet) throws SQLException;
 
