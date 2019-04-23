@@ -90,22 +90,10 @@ public class QueueStatusBean {
      */
     public Response getQueueStatus(DataSource dataSource, long maxCacheAge, int diagPercentMatch, int diagCollapseMaxRows, Set<String> ignoreQueues, boolean force) {
         log.info("getQueueStatus called");
-        try {
-            String queueStatus = queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows, maxCacheAge, ignoreQueues, force);
-            return Response.ok()
-                    .entity(queueStatus)
-                    .type(MediaType.APPLICATION_JSON_TYPE)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .build();
-        } catch (InterruptedException | ExecutionException ex) {
-            log.error("Error getting queue status: {}", ex.getMessage());
-            log.debug("Error getting queue status: ", ex);
-            return Response.status(Response.Status.REQUEST_TIMEOUT).build();
-        } catch (JsonProcessingException ex) {
-            log.error("Error getting queue status: {}", ex.getMessage());
-            log.debug("Error getting queue status: ", ex);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
-        }
+
+        return jsonResponse(() ->
+                queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows,
+                                maxCacheAge, ignoreQueues, force), "Error getting queue status");
     }
 
     /**
@@ -207,7 +195,7 @@ public class QueueStatusBean {
      */
     public Response getDiagDistribution(String timeZoneName, DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows) {
         log.info("getDiagDistribution");
-        try {
+        return jsonResponse(() -> {
             ZoneId zone = ZoneId.of(timeZoneName);
             ObjectNode obj = O.createObjectNode();
             JsonNode ret = obj;
@@ -232,20 +220,8 @@ public class QueueStatusBean {
             } else {
                 ret = node;
             }
-            return Response.ok()
-                    .entity(O.writeValueAsString(ret))
-                    .type(MediaType.APPLICATION_JSON_TYPE)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .build();
-        } catch (InterruptedException | ExecutionException ex) {
-            log.error("Error getting queue status: {}", ex.getMessage());
-            log.debug("Error getting queue status: ", ex);
-            return Response.status(Response.Status.REQUEST_TIMEOUT).build();
-        } catch (JsonProcessingException ex) {
-            log.error("Error getting queue status: {}", ex.getMessage());
-            log.debug("Error getting queue status: ", ex);
-            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
-        }
+            return O.writeValueAsString(ret);
+        }, "Error getting queue diag distribution");
     }
 
     private Map<String, Map<String, Integer>> timestampToDiagToCount(Map<String, Map<String, Integer>> prDiag) {
@@ -378,7 +354,7 @@ public class QueueStatusBean {
         int lenTotalTarget = 0;
         List<String> diag = Arrays.asList(text.split("\\b"));
         int lenDiag = diag.size();
-        for (Map.Entry<ArrayList<String>,AtomicInteger> candidate : accumulated.entrySet()) {
+        for (Map.Entry<ArrayList<String>, AtomicInteger> candidate : accumulated.entrySet()) {
             ArrayList<String> key = candidate.getKey();
             int lenLeft = diagLenLeft(key, diag);
             if (lenLeft == lenDiag) {
@@ -539,6 +515,29 @@ public class QueueStatusBean {
                 }
             }
         }
+    }
 
+    private Response jsonResponse(JsonStringProducer producer, String errorMessagePrefix) {
+        try {
+            return Response.ok()
+                    .entity(producer.get())
+                    .type(MediaType.APPLICATION_JSON_TYPE)
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
+        } catch (InterruptedException | ExecutionException ex) {
+            log.error("{}: {}", errorMessagePrefix, ex.getMessage());
+            log.debug("{}: ", errorMessagePrefix, ex);
+            return Response.status(Response.Status.REQUEST_TIMEOUT).build();
+        } catch (JsonProcessingException ex) {
+            log.error("{}: {}", errorMessagePrefix, ex.getMessage());
+            log.debug("{}: ", errorMessagePrefix, ex);
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @FunctionalInterface
+    private interface JsonStringProducer {
+
+        String get() throws InterruptedException, ExecutionException, JsonProcessingException;
     }
 }
