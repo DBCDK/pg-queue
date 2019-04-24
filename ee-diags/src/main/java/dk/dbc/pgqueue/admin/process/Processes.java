@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutorService;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.ejb.EJB;
+import javax.ejb.Lock;
+import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.enterprise.concurrent.ManagedExecutorService;
 
@@ -16,6 +18,7 @@ import javax.enterprise.concurrent.ManagedExecutorService;
  * @author DBC {@literal <dbc.dk>}
  */
 @Singleton
+@Lock(LockType.READ)
 public class Processes {
 
     @Resource(type = ManagedExecutorService.class)
@@ -36,9 +39,10 @@ public class Processes {
     }
 
     /**
+     * Set up a process in the executor service system
      *
-     * @param process
-     * @return
+     * @param process process to run at first given time
+     * @return identifier of job
      */
     public String registerProcess(Process process) {
         while (process.getProcessId() == null) {

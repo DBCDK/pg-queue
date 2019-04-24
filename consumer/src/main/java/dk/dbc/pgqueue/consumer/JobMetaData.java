@@ -18,6 +18,7 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -108,6 +109,7 @@ public class JobMetaData {
      *
      * @return timestamp
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Timestamp getQueued() {
         return queued;
     }
@@ -117,6 +119,7 @@ public class JobMetaData {
      *
      * @return timestamp
      */
+    @SuppressFBWarnings("EI_EXPOSE_REP")
     public Timestamp getDequeueAfter() {
         return dequeueAfter;
     }

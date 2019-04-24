@@ -28,12 +28,40 @@ pipeline {
                 }
 
                 sh """
-                    mvn -Dmaven.repo.local=\$WORKSPACE/.repo -B clean
-                    mvn -Dmaven.repo.local=\$WORKSPACE/.repo -B install findbugs:findbugs pmd:pmd javadoc:aggregate
+                    rm -rf \$WORKSPACE/.repo/dk/dbc
+                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo clean
+                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo install javadoc:aggregate -Dsurefire.useFile=false -Dmaven.test.failure.ignore
                 """
-                //junit "**/target/surefire-reports/TEST-*.xml,**/target/failsafe-reports/TEST-*.xml"
+                script {
+                    junit testResults: '**/target/surefire-reports/TEST-*.xml'
+
+                    def java = scanForIssues tool: [$class: 'Java']
+                    def javadoc = scanForIssues tool: [$class: 'JavaDoc']
+
+                    publishIssues issues:[java,javadoc], unstableTotalAll:1
+                }
+            } 
+        }
+
+        stage("analysis") {
+            steps {
+                sh """
+                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo pmd:pmd pmd:cpd findbugs:findbugs
+                """
+
+                script {
+                    def pmd = scanForIssues tool: [$class: 'Pmd'], pattern: '**/target/pmd.xml'
+                    publishIssues issues:[pmd], unstableTotalAll:1
+
+                    def cpd = scanForIssues tool: [$class: 'Cpd'], pattern: '**/target/cpd.xml'
+                    publishIssues issues:[cpd]
+
+                    def findbugs = scanForIssues tool: [$class: 'FindBugs'], pattern: '**/target/findbugsXml.xml'
+                    publishIssues issues:[findbugs], unstableTotalAll:1
+                }
             }
         }
+
         stage("upload") {
             steps {
                 script {

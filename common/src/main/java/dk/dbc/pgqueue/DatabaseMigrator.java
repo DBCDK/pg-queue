@@ -33,15 +33,15 @@ public class DatabaseMigrator {
     private static final Logger log = LoggerFactory.getLogger(DatabaseMigrator.class);
 
     public static void migrate(DataSource dataSource) {
-        final Flyway flyway = new Flyway();
-        flyway.setTable("queue_version");
-        flyway.setBaselineOnMigrate(true);
-        flyway.setDataSource(dataSource);
-        flyway.setLocations("pg-queue/migration");
+        Flyway flyway = Flyway.configure()
+                .table("queue_version")
+                .baselineOnMigrate(true)
+                .dataSource(dataSource)
+                .locations("pg-queue/migration")
+                .load();
         for (MigrationInfo i : flyway.info().all()) {
             log.info("db task {} : {} from file '{}'", i.getVersion(), i.getDescription(), i.getScript());
         }
         flyway.migrate();
     }
-
 }
