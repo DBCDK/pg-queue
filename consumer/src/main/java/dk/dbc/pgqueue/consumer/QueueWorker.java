@@ -363,7 +363,7 @@ public interface QueueWorker {
                         .filter(queue -> !queue.isEmpty())
                         .collect(Collectors.toList());
             }
-            if (deduplicateDisable == null && ( s = env.get(ENV_DATABASE_THROTTLE) ) != null) {
+            if (deduplicateDisable == null && ( s = env.get(ENV_DEDUPLICATE_DISABLE) ) != null) {
                 deduplicateDisable = deduplicateDisableBuild(s);
             }
             return this;
