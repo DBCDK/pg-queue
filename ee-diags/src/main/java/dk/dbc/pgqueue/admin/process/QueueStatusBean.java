@@ -263,7 +263,7 @@ public class QueueStatusBean {
         try (Connection connection = dataSource.getConnection() ;
              Statement stmt = connection.createStatement() ;
              PreparedStatement prepStmt = connection.prepareStatement("SELECT CAST(EXTRACT('epoch' FROM NOW() - dequeueafter) AS INTEGER) FROM queue WHERE consumer = ? ORDER BY dequeueafter LIMIT 1") ;
-             ResultSet resultSet = stmt.executeQuery("SELECT consumer, COUNT(*) FROM queue GROUP BY consumer")) {
+             ResultSet resultSet = stmt.executeQuery("SELECT consumer, COUNT(*) FROM queue WHERE dequeueafter < NOW() GROUP BY consumer")) {
             ObjectNode node = O.createObjectNode();
             while (resultSet.next()) {
                 int i = 0;
