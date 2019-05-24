@@ -446,6 +446,10 @@ class JobWorker<T> implements Runnable {
             sql(() -> failedStmt.close(), "Error closing failed statement");
             failedStmt = null;
         }
+        if (deleteDuplicateStmt != null) {
+            sql(() -> deleteDuplicateStmt.close(), "Error closing delete duplicate statement");
+            deleteDuplicateStmt = null;
+        }
     }
 
     /**
