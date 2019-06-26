@@ -172,13 +172,13 @@ class JobWorker<T> implements Runnable {
                 success = true;
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
             } catch (FatalQueueError ex) {
-                log.debug("Fatal error: {}", ex.getMessage());
+                log.info("Fatal error: {}", ex.getMessage());
                 log.debug("Fatal error: ", ex);
                 connection.rollback(savepoint);
                 connection.commit(); // In case of failJob fails
                 failJob(job, getExceptionMessage(ex));
             } catch (PostponedNonFatalQueueError ex) {
-                log.debug("Non Fatal error: {} (postpone)", ex.getMessage());
+                log.info("Non Fatal error: {} (postpone)", ex.getMessage());
                 log.debug("Non Fatal error: ", ex);
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
@@ -188,7 +188,7 @@ class JobWorker<T> implements Runnable {
                     postponeJob(job, ex.getPostponedMs());
                 }
             } catch (NonFatalQueueError | RuntimeException ex) {
-                log.debug("Non Fatal error: {}", ex.getMessage());
+                log.info("Non Fatal error: {}", ex.getMessage());
                 log.debug("Non Fatal error: ", ex);
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
@@ -229,12 +229,8 @@ class JobWorker<T> implements Runnable {
     }
 
     private boolean isMessageInList(String message, List<String> messages) {
-        for (String stored : messages) {
-            if (stored.contains(message)) {
-                return true;
-            }
-        }
-        return false;
+        return messages.stream()
+                .anyMatch(m -> m.contains(message));
     }
 
     /**
