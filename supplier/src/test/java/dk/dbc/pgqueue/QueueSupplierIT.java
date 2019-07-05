@@ -93,6 +93,34 @@ public class QueueSupplierIT {
         }
     }
 
+    @Test(timeout = 2_000L)
+    public void batchEnqueue() throws Exception {
+        System.out.println("batchEnqueue");
+        try (Connection connection = dataSource.getConnection()) {
+            try (BatchQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).batchSupplier(connection, 10)) {
+
+                try (Statement stmt = connection.createStatement() ;
+                     ResultSet resultSet = stmt.executeQuery("SELECT count(*) FROM queue")) {
+                    assertTrue(resultSet.next());
+                    assertEquals(0, resultSet.getInt(1));
+                }
+                for (int i = 0 ; i < 15 ; i++) {
+                    supplier.enqueue("a", "#" + i);
+                }
+                try (Statement stmt = connection.createStatement() ;
+                     ResultSet resultSet = stmt.executeQuery("SELECT count(*) FROM queue")) {
+                    assertTrue(resultSet.next());
+                    assertEquals(10, resultSet.getInt(1));
+                }
+            }
+            try (Statement stmt = connection.createStatement() ;
+                 ResultSet resultSet = stmt.executeQuery("SELECT count(*) FROM queue")) {
+                assertTrue(resultSet.next());
+                assertEquals(15, resultSet.getInt(1));
+            }
+        }
+    }
+
     private static final QueueStorageAbstraction<String> QUEUE_STORAGE_ABSTRACTION = new QueueStorageAbstraction<String>() {
         String[] COLUMN_LIST = new String[] {"job"};
 

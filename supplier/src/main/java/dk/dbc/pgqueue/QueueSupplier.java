@@ -21,6 +21,7 @@ package dk.dbc.pgqueue;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
+import java.util.Optional;
 
 /**
  *
@@ -52,17 +53,44 @@ public class QueueSupplier<T> {
     /**
      * Create a supplier with (lazy) prepares statements
      *
-     * @param connection database connection to enqueu
+     * @param connection database connection to enqueue upon
      * @return object with prepared statements placeholders
      */
-    public PreparedQueueSupplier preparedSupplier(Connection connection) {
-        return new PreparedQueueSupplier(abstraction, connection, insertNowSql, insertLaterSql);
+    public PreparedQueueSupplier<T> preparedSupplier(Connection connection) {
+        return new PreparedQueueSupplier<>(abstraction, connection, insertNowSql, insertLaterSql);
+    }
+
+    /**
+     * Create a supplier with (lazy) prepares statements, and batching
+     * <p>
+     * The last batch is sent when this is closed
+     *
+     * @param connection database connection to enqueue upon
+     * @param batchSize  execute every n enqueues (different counters for
+     *                   postponed/now)
+     * @return object with prepared statements placeholders
+     */
+    public BatchQueueSupplier<T> batchSupplier(Connection connection, int batchSize) {
+        return new BatchQueueSupplier<>(abstraction, connection, insertNowSql, insertLaterSql, batchSize);
+    }
+
+    /**
+     * Create a supplier with (lazy) prepares statements, and batching
+     * <p>
+     * The batch is sent when this is closed
+     *
+     * @param connection database connection to enqueue upon
+     * @return object with prepared statements placeholders
+     */
+    public BatchQueueSupplier<T> batchSupplier(Connection connection) {
+        return new BatchQueueSupplier<>(abstraction, connection, insertNowSql, insertLaterSql, -1);
     }
 
     /**
      * Enqueue a job
      * <p>
      * This should be avoided unless only called once this transaction
+     *
      * @see PreparedQueueSupplier
      * <p>
      * This is a wrapper around {@link #preparedSupplier(java.sql.Connection) }
@@ -82,6 +110,7 @@ public class QueueSupplier<T> {
      * Enqueue a job for delayed dequeuing
      * <p>
      * This should be avoided unless only called once this transaction
+     *
      * @see PreparedQueueSupplier
      * <p>
      * This is a wrapper around {@link #preparedSupplier(java.sql.Connection) }
@@ -97,6 +126,21 @@ public class QueueSupplier<T> {
     public void enqueue(Connection connection, String queue, T job, long postponed) throws SQLException {
         preparedSupplier(connection).enqueue(queue, job, postponed);
 
+    }
+
+    static Optional<SQLException> wrapSql(String errorMessage, VoidBlock block) {
+        try {
+            block.run();
+            return Optional.empty();
+        } catch (SQLException ex) {
+            return Optional.of(new SQLException(errorMessage, ex));
+        }
+    }
+
+    @FunctionalInterface
+    interface VoidBlock {
+
+        void run() throws SQLException;
     }
 
 }
