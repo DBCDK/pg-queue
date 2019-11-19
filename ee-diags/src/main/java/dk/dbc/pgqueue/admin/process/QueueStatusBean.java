@@ -128,8 +128,8 @@ public class QueueStatusBean {
             } else {
                 Instant preTime = Instant.now();
                 QUEUE_STATUS.removeAll();
-                // The balant misuse of jacksons inststance on having object
-                // keys in the order theyre created. Create the keys in the
+                // The balant misuse of jacksons insistance on having object
+                // keys in the order they're created. Create the keys in the
                 // human readble order
                 props = QUEUE_STATUS.putObject("props");
                 props.put("cached", Boolean.FALSE);
@@ -138,8 +138,10 @@ public class QueueStatusBean {
                 QUEUE_STATUS.put("queue-max-age", "NaN");
                 QUEUE_STATUS.put("diag", "Internal Error");
                 QUEUE_STATUS.put("diag-count", "NaN");
+                QUEUE_STATUS.put("transaction-age", "NaN");
                 Future<JsonNode> queue = es.submit(() -> createQueueStatusNode(dataSource));
                 Future<Integer> diagCount = es.submit(() -> createDiagCount(dataSource));
+                Future<Integer> transactionAge = es.submit(() -> createTransactionAge(dataSource));
                 Future<JsonNode> diag = es.submit(() -> createDiagStatusNode(dataSource, diagPercentMatch, diagCollapseMaxRows));
 
                 JsonNode queueNode = queue.get();
@@ -151,6 +153,8 @@ public class QueueStatusBean {
                 if (diagCountNumber > diagCollapseMaxRows) {
                     QUEUE_STATUS.put("diag-count-warning", "Too many diag rows for collapsing, only looking at " + diagCollapseMaxRows + " rows");
                 }
+                QUEUE_STATUS.put("transaction-age", transactionAge.get());
+
                 Instant postTime = Instant.now();
                 long duration = preTime.until(postTime, ChronoUnit.MILLIS);
                 props.put("query-time(ms)", duration);
@@ -310,6 +314,20 @@ public class QueueStatusBean {
                     node.put(sortKey.get(e.getKey()), e.getValue().get());
                 });
         return node;
+    }
+
+    private Integer createTransactionAge(DataSource dataSource) {
+        try (Connection connection = dataSource.getConnection() ;
+             Statement stmt = connection.createStatement() ;
+             ResultSet resultSet = stmt.executeQuery("SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP - xact_start) FROM pg_stat_activity WHERE xact_start IS NOT NULL ORDER BY xact_start LIMIT 1")) {
+            if (resultSet.next()) {
+                return resultSet.getInt(1);
+            }
+        } catch (SQLException ex) {
+            log.error("Sql error counting queue entries: {}", ex.getMessage());
+            log.debug("Sql error counting queue entries: ", ex);
+        }
+        return null;
     }
 
     private Integer createDiagCount(DataSource dataSource) {
