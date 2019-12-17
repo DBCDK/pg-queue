@@ -22,19 +22,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
-import dk.dbc.parameterized.arguments.from.resources.ParameterizedArgumentsFromResources;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.*;
 
 /**
@@ -52,10 +53,12 @@ public class ThrottleTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static Collection<Object[]> tests() throws Exception {
-        return ParameterizedArgumentsFromResources
-                .builder(ThrottleTest.class)
-                .filter(Pattern.compile("\\.ya?ml$"))
-                .build();
+        String name = ThrottleTest.class.getCanonicalName();
+        URL url = ThrottleTest.class.getClassLoader().getResource(name);
+        return Stream.of(new File(url.getPath()).list())
+                .filter(s -> s.endsWith(".yaml"))
+                .map(s -> new Object[] {name + "/" + s})
+                .collect(toList());
     }
 
     public ThrottleTest(String resource) throws IOException {
@@ -68,7 +71,6 @@ public class ThrottleTest {
     @Test
     public void test() {
         System.out.println(resource);
-//        AtomicLong time = new AtomicLong(System.currentTimeMillis());
         AtomicLong time = new AtomicLong(1_000_000L);
         AtomicLong sleep = new AtomicLong();
         Throttle throttle = new Throttle(test.get("rules").asText()) {
@@ -92,10 +94,10 @@ public class ThrottleTest {
             boolean result = action.get("result").asBoolean();
 
             throttle.throttle();
-            assertEquals("Expected wait for Test #" + (1 + i), expectedDelay, sleep.get());
+            assertEquals("Expected wait for Test #" + ( 1 + i ), expectedDelay, sleep.get());
             throttle.register(result);
             JsonNode duration = action.get("duration");
-            if(duration != null) {
+            if (duration != null) {
                 time.addAndGet(duration.asLong());
             }
         }
