@@ -40,7 +40,14 @@ public class MetricAbstractionCodahale implements MetricAbstraction {
     public Timer timer(Class clazz, String name) {
         com.codahale.metrics.Timer timer = metricRegistry.timer(MetricRegistry.name(clazz, name));
         return () -> {
-            return (Timer.Context) timer.time();
+            return new Timer.Context() {
+                com.codahale.metrics.Timer.Context context = timer.time();
+
+                @Override
+                public void close() {
+                    context.close();
+                }
+            };
         };
     }
 

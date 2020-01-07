@@ -413,22 +413,24 @@ public interface QueueWorker {
         /**
          * Set where to register performance stats
          *
-         * @param metricRegistry the registry
+         * @param metricRegistry the registry (or null)
          * @return self
          */
         public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
-            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry");
+            if (metricRegistry != null)
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry");
             return this;
         }
 
         /**
          * Set where to register performance stats
          *
-         * @param metricRegistry the registry
+         * @param metricRegistry the registry (or null)
          * @return self
          */
         public Builder<T> metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry metricRegistry) {
-            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry");
+            if (metricRegistry != null)
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry");
             return this;
         }
 
