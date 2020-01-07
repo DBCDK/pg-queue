@@ -18,9 +18,6 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import com.codahale.metrics.Counter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -116,15 +113,15 @@ class Harvester<T> implements QueueWorker {
     private final String deleteDuplicateSql;
     private final int duplicateDeleteColumnsCount;
 
-    final Timer databaseconnectTimer;
-    final Timer dequeueTimer;
-    final Timer deleteDuplicateTimer;
-    final Timer retryTimer;
-    final Timer postponeTimer;
-    final Timer failureTimer;
-    final Timer timestampTimer;
-    final Counter rescanCounter;
-    final Counter recalcPreparedStatementCounter;
+    final MetricAbstraction.Timer databaseconnectTimer;
+    final MetricAbstraction.Timer dequeueTimer;
+    final MetricAbstraction.Timer deleteDuplicateTimer;
+    final MetricAbstraction.Timer retryTimer;
+    final MetricAbstraction.Timer postponeTimer;
+    final MetricAbstraction.Timer failureTimer;
+    final MetricAbstraction.Timer timestampTimer;
+    final MetricAbstraction.Counter rescanCounter;
+    final MetricAbstraction.Counter recalcPreparedStatementCounter;
 
     private volatile boolean running;
 
@@ -167,12 +164,12 @@ class Harvester<T> implements QueueWorker {
         this.recalcPreparedStatementCounter = makeCounter("recalcPreparedStatement");
     }
 
-    private Timer makeTimer(String name) {
-        return settings.metricRegistry.timer(MetricRegistry.name(Harvester.class, name));
+    private MetricAbstraction.Timer makeTimer(String name) {
+        return settings.metricAbstraction.timer(Harvester.class, name);
     }
 
-    private Counter makeCounter(String name) {
-        return settings.metricRegistry.counter(MetricRegistry.name(Harvester.class, name));
+    private MetricAbstraction.Counter makeCounter(String name) {
+        return settings.metricAbstraction.counter(Harvester.class, name);
     }
 
     @Override
@@ -229,7 +226,7 @@ class Harvester<T> implements QueueWorker {
     Connection getConnectionThrottled() throws SQLException {
         settings.databaseConnectThrottle.throttle();
         boolean success = false;
-        try (Timer.Context time = databaseconnectTimer.time()) {
+        try (MetricAbstraction.Timer.Context time = databaseconnectTimer.time()) {
             Connection connection = dataSource.getConnection();
             try {
                 connection.setAutoCommit(false);
