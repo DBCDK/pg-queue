@@ -29,7 +29,7 @@ public interface MetricAbstraction {
         interface Context extends AutoCloseable {
 
             @Override
-            public void close();
+            void close();
 
         }
 

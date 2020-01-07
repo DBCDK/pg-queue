@@ -18,7 +18,6 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import com.codahale.metrics.Timer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

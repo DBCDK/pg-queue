@@ -18,7 +18,6 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import com.codahale.metrics.MetricRegistry;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.util.Collections;
 import java.util.List;
