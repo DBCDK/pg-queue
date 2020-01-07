@@ -79,7 +79,7 @@ pipeline {
             script {
                 def version = readMavenPom().version
                 writeFile(file: 'version.txt', text: version, encoding: 'UTF-8')
-		archiveArtifacts artifacts: 'version.txt', fingerprint: true
+                archiveArtifacts artifacts: 'version.txt', fingerprint: true
             }
         }
         failure {
