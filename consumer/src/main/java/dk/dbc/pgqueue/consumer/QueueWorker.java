@@ -406,7 +406,8 @@ public interface QueueWorker {
          */
         @Deprecated
         public Builder<T> metricRegistry(com.codahale.metrics.MetricRegistry metricRegistry) {
-            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry");
+            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+            log.warn("Deprecated use: {}.metricsRegistry(...)", getClass().getCanonicalName());
             return this;
         }
 
@@ -418,7 +419,7 @@ public interface QueueWorker {
          */
         public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry");
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
             return this;
         }
 
@@ -430,7 +431,7 @@ public interface QueueWorker {
          */
         public Builder<T> metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry");
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
             return this;
         }
 
