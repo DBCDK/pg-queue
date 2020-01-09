@@ -18,7 +18,6 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import com.codahale.metrics.MetricRegistry;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.util.Collections;
 import java.util.List;
@@ -46,11 +45,11 @@ class Settings<T> {
     final Throttle databaseConnectThrottle;
     final Throttle failureThrottle;
     final ExecutorService executor;
-    final MetricRegistry metricRegistry;
+    final MetricAbstraction metricAbstraction;
     final QueueHealth health;
     final DeduplicateDisable deduplicateDisable;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricRegistry metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricAbstraction metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
         this.maxTries = maxTries;
         this.window = window;
         this.emptyQueueSleep = emptyQueueSleep;
@@ -62,7 +61,7 @@ class Settings<T> {
         this.failureThrottle = failureThrottle;
         this.fullScanEvery = fullScanEvery;
         this.executor = executor;
-        this.metricRegistry = metricRegistry;
+        this.metricAbstraction = metricRegistry;
         this.idleFullScanEvery = idleFullScanEvery;
         this.health = health;
         this.deduplicateDisable = deduplicateDisable;

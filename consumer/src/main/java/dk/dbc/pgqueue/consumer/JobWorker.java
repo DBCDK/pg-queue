@@ -18,7 +18,6 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import com.codahale.metrics.Timer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -297,7 +296,7 @@ class JobWorker<T> implements Runnable {
      */
     private ResultSet timedSelect(String queueName, Timestamp timestamp) throws SQLException {
         PreparedStatement stmt = getSelectStmt(queueName, timestamp);
-        try (Timer.Context time = harvester.dequeueTimer.time() ;
+        try (MetricAbstraction.Timer.Context time = harvester.dequeueTimer.time() ;
              QueueHealth.Context call = health.databaseCall()) {
             return stmt.executeQuery();
         }
@@ -317,7 +316,7 @@ class JobWorker<T> implements Runnable {
         }
         if (!harvester.settings.deduplicateDisable.canDeduplicate())
             return null;
-        try (Timer.Context time = harvester.deleteDuplicateTimer.time() ;
+        try (MetricAbstraction.Timer.Context time = harvester.deleteDuplicateTimer.time() ;
              DeduplicateDisable.Context dedupDisable = harvester.settings.deduplicateDisable.context() ;
              QueueHealth.Context call = health.databaseCall()) {
             return stmt.executeQuery();
@@ -333,7 +332,7 @@ class JobWorker<T> implements Runnable {
     private void retryJob(JobWithMetaData<T> job) throws SQLException {
         log.debug("retrying job");
         int rows;
-        try (Timer.Context time = harvester.retryTimer.time() ;
+        try (MetricAbstraction.Timer.Context time = harvester.retryTimer.time() ;
              QueueHealth.Context call = health.databaseCall()) {
             rows = getRetryStmt(job).executeUpdate();
         }
@@ -352,7 +351,7 @@ class JobWorker<T> implements Runnable {
     private void postponeJob(JobWithMetaData<T> job, long postponedMs) throws SQLException {
         log.debug("postpone job for {}ms", postponedMs);
         int rows;
-        try (Timer.Context time = harvester.postponeTimer.time() ;
+        try (MetricAbstraction.Timer.Context time = harvester.postponeTimer.time() ;
              QueueHealth.Context call = health.databaseCall()) {
             rows = getPostponeStmt(job, postponedMs).executeUpdate();
         }
@@ -376,7 +375,7 @@ class JobWorker<T> implements Runnable {
                          stmt,
                          Harvester.SqlFailed.NEXT_POS);
         int rows;
-        try (Timer.Context time = harvester.failureTimer.time() ;
+        try (MetricAbstraction.Timer.Context time = harvester.failureTimer.time() ;
              QueueHealth.Context call = health.databaseCall()) {
             rows = stmt.executeUpdate();
         }
@@ -456,7 +455,7 @@ class JobWorker<T> implements Runnable {
      */
     private Timestamp getTimestampFromDb(String queue) {
         long before = System.currentTimeMillis();
-        try (Timer.Context time = harvester.timestampTimer.time()) {
+        try (MetricAbstraction.Timer.Context time = harvester.timestampTimer.time()) {
             try (QueueHealth.Context call = health.databaseCall() ;
                  ResultSet resultSet = getTimestampStmt(queue).executeQuery()) {
                 if (resultSet.next()) {

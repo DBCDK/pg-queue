@@ -18,7 +18,6 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import com.codahale.metrics.MetricRegistry;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -116,7 +115,7 @@ public interface QueueWorker {
         private DeduplicateDisable deduplicateDisable;
         private String failureThrottle;
         private ExecutorService executor;
-        private MetricRegistry metricRegistry;
+        private MetricAbstraction metricsAbstraction;
         private DeduplicateAbstraction<T> deduplicateAbstraction;
         private QueueHealth health;
 
@@ -133,7 +132,7 @@ public interface QueueWorker {
             this.databaseConnectThrottle = null;
             this.failureThrottle = null;
             this.executor = null;
-            this.metricRegistry = null;
+            this.metricsAbstraction = null;
             this.deduplicateAbstraction = null;
             this.health = null;
         }
@@ -396,12 +395,43 @@ public interface QueueWorker {
 
         /**
          * Set where to register performance stats
+         * <p>
+         * use either
+         * {@link #metricRegistryCodahale(com.codahale.metrics.MetricRegistry)}
+         * or
+         * {@link #metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry)}.
          *
          * @param metricRegistry the registry
          * @return self
          */
-        public Builder<T> metricRegistry(MetricRegistry metricRegistry) {
-            this.metricRegistry = setOrFail(this.metricRegistry, metricRegistry, "metricsRegistry");
+        @Deprecated
+        public Builder<T> metricRegistry(com.codahale.metrics.MetricRegistry metricRegistry) {
+            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+            log.warn("Deprecated use: {}.metricsRegistry(...)", getClass().getCanonicalName());
+            return this;
+        }
+
+        /**
+         * Set where to register performance stats
+         *
+         * @param metricRegistry the registry (or null)
+         * @return self
+         */
+        public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
+            if (metricRegistry != null)
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+            return this;
+        }
+
+        /**
+         * Set where to register performance stats
+         *
+         * @param metricRegistry the registry (or null)
+         * @return self
+         */
+        public Builder<T> metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry metricRegistry) {
+            if (metricRegistry != null)
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
             return this;
         }
 
@@ -454,7 +484,7 @@ public interface QueueWorker {
             if (health == null) {
                 health = new QueueHealth();
             }
-            if (metricRegistry == null) {
+            if (metricsAbstraction == null) {
                 log.warn("unset metricRegistry");
             }
             if (consumers.isEmpty()) {
@@ -471,7 +501,7 @@ public interface QueueWorker {
                                            new Throttle(or(databaseConnectThrottle, "")),
                                            new Throttle(or(failureThrottle, "")),
                                            executor,
-                                           or(metricRegistry, new MetricRegistry()),
+                                           or(metricsAbstraction, new MetricAbstractionNull()),
                                            or(window, 100L),
                                            health,
                                            or(deduplicateDisable, new DeduplicateDisable()));
