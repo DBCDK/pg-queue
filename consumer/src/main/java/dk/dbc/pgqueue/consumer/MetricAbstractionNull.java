@@ -18,6 +18,11 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+/**
+ * Implementation of metrics objects that does nothing at all
+ *
+ * @author Morten Bøgeskov (mb@dbc.dk)
+ */
 public class MetricAbstractionNull implements MetricAbstraction {
 
     @Override

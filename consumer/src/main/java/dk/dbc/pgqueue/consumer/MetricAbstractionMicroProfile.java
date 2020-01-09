@@ -20,6 +20,11 @@ package dk.dbc.pgqueue.consumer;
 
 import org.eclipse.microprofile.metrics.MetricRegistry;
 
+/**
+ * Implementation of metrics objects for microprofile variant of metrics
+ *
+ * @author Morten Bøgeskov (mb@dbc.dk)
+ */
 public class MetricAbstractionMicroProfile implements MetricAbstraction {
 
     private final MetricRegistry metricRegistry;

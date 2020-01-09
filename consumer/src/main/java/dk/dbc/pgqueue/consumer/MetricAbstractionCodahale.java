@@ -20,6 +20,11 @@ package dk.dbc.pgqueue.consumer;
 
 import com.codahale.metrics.MetricRegistry;
 
+/**
+ * Implementation of metrics objects for codahale variant of metrics
+ *
+ * @author Morten Bøgeskov (mb@dbc.dk)
+ */
 public class MetricAbstractionCodahale implements MetricAbstraction {
 
     private final MetricRegistry metricRegistry;
