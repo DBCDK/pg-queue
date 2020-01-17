@@ -110,7 +110,12 @@ public class CliArguments {
     }
 
     /**
-     * Usage:
+     * Validate the arguments, and handle positional arguments
+     * <p>
+     * You need to handle (place) positional arguments yourself. Default action
+     * is to not allow any positional arguments.
+     * <p>
+     * Usage for complex required and positional arguments:
      * <pre>
      *    &#64;Override
      *    public Optional&lt;String&gt; validateOptionsAndProcessPositionalArguments(Stream.Builder&lt;String&gt; missingRequired, List&lt;String&gt; positionals) &#123;
@@ -144,8 +149,9 @@ public class CliArguments {
      *   &#125;
      * </pre>
      *
-     * @param missingRequired
-     * @param positionals
+     * @param missingRequired A builder with the option names that are missing.
+     *                        You can add to this your self (see usage)
+     * @param positionals     List of positional arguments
      * @return Optional string, if set usage is printed and this is written
      *         before the usage message from
      *         {@link #parseArguments(java.lang.String...)} and exit(0) is
