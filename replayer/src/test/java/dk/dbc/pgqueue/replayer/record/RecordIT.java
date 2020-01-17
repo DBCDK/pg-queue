@@ -97,7 +97,7 @@ public class RecordIT {
                 record.run();
             }
             bos.flush();
-            csv = bos.toString(UTF_8);
+            csv = new String(bos.toByteArray(), UTF_8);
             System.out.print(csv);
         }
         Iterator<String> line = Arrays.asList(csv.trim().split("[\r\n]+")).iterator();
