@@ -30,8 +30,4 @@ target
 # netbeans
 nbaction.xml
 nb-configuration.xml
-
-
-/consumer/nbproject/
-/common/nbproject/
-/supplier/nbproject/
+/**/nbproject/
