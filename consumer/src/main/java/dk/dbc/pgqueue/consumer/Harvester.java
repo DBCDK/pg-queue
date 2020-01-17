@@ -201,7 +201,7 @@ class Harvester<T> implements QueueWorker {
         }
         settings.executor.shutdown();
         try {
-            boolean terminated = settings.executor.awaitTermination(timeout, TimeUnit.MILLISECONDS);
+            boolean terminated = settings.executor.awaitTermination(timeout, tu);
             if (!terminated) {
                 log.error("Error waiting for harvester-threads to finish: timed out");
             }
