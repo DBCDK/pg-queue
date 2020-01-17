@@ -32,7 +32,7 @@ public class Converters {
      * Turn a number and a unit into a number of milliseconds
      *
      * @param <T>       Exception type
-     * @param duration  String containing number and unit
+     * @param duration  String containing number and unit (ms/s/m/h/d)
      * @param exception Supplier for exception, if duration cannot be processed
      * @return number of milliseconds
      * @throws T Exception in case of parse error

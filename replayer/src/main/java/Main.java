@@ -79,7 +79,7 @@ public class Main {
         System.err.println("");
         System.err.println("    --help  This lot");
         System.err.println("    record  Record from queue into a CSV file");
-        System.err.println("    play    Rlay a recorded CSV file against a queue consumer");
+        System.err.println("    play    Play a recorded CSV file against a queue consumer");
         System.err.println("");
         System.err.println("    play/record both takes --help");
         System.err.println("");

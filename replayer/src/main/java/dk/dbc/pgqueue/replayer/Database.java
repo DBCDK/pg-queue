@@ -34,8 +34,9 @@ public class Database {
     /**
      * Convert a login string into a datasource
      *
-     * @param url login string
-     * @return datasource (not validated)
+     * @param url login string in for form: user:pass@host:port/base with
+     *            user, pass and port as optional (password cannot be set without user)
+     * @return datasource (not validated, might connect to nothing)
      */
     public static DataSource of(String url) {
         Matcher matcher = POSTGRES_URL_REGEX.matcher(url);
