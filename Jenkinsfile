@@ -30,7 +30,7 @@ pipeline {
                 sh """
                     rm -rf \$WORKSPACE/.repo/dk/dbc
                     mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo clean
-                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo install javadoc:aggregate -Dsurefire.useFile=false -Dmaven.test.failure.ignore
+                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo org.jacoco:jacoco-maven-plugin:prepare-agent install javadoc:aggregate -Dsurefire.useFile=false -Dmaven.test.failure.ignore
                 """
                 script {
                     junit testResults: '**/target/surefire-reports/TEST-*.xml'
@@ -59,6 +59,17 @@ pipeline {
                     def findbugs = scanForIssues tool: [$class: 'FindBugs'], pattern: '**/target/findbugsXml.xml'
                     publishIssues issues:[findbugs], unstableTotalAll:1
                 }
+            }
+        }
+
+        stage("coverage") {
+            steps {
+                step([$class: 'JacocoPublisher', 
+                      execPattern: '**/target/*.exec',
+                      classPattern: '**/target/classes',
+                      sourcePattern: '**/src/main/java',
+                      exclusionPattern: '**/src/test*'
+                ])
             }
         }
 
