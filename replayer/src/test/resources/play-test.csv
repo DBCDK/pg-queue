@@ -1,0 +1,7 @@
+#
+# Test data for PlayIT.java
+#
+offsetInMs,ape,badger,catapillar
+0,,4,"{}"
+40,any,42,"{""a"": true}"
+65,"me",,
