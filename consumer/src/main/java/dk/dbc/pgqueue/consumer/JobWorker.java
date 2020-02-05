@@ -125,14 +125,14 @@ class JobWorker<T> implements Runnable {
                 try {
                     harvester.settings.databaseConnectThrottle.throttle();
                     setupConnection();
-                    job = fetchJob();
+                    job = fetchJob(false);
                     harvester.settings.databaseConnectThrottle.register(true);
                 } catch (SQLException ex) {
                     harvester.settings.databaseConnectThrottle.register(false);
                     throw ex;
                 }
             } else {
-                job = fetchJob();
+                job = fetchJob(true);
             }
         }
         log.debug("job = {}", job);
@@ -241,11 +241,11 @@ class JobWorker<T> implements Runnable {
      * <p>
      * Wait and rescan queue as needed
      *
-     * @param doNotWaitForJob if set returns null if no job can be fetched
-     * @return new job or null if thread has been canceled
+     * @param waitForJob if not set returns null if no job can be fetched
+     * @return new job or null if thread has been canceled or not waiting
      * @throws SQLException If an error occurs
      */
-    private JobWithMetaData fetchJob() throws SQLException {
+    private JobWithMetaData fetchJob(boolean waitForJob) throws SQLException {
         harvester.settings.failureThrottle.throttle();
 
         boolean hasClearedTimestamps = false;
@@ -272,6 +272,8 @@ class JobWorker<T> implements Runnable {
                 }
             }
             connection.rollback();
+            if (!waitForJob)
+                return null;
             // idle state fullscan more often, and start with fullscan
             fullScanEvery = harvester.settings.idleFullScanEvery;
             if (!hasClearedTimestamps) {
