@@ -36,6 +36,12 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import dk.dbc.pgqueue.DeduplicateAbstraction;
+import java.io.PrintWriter;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Logger;
+import org.junit.Ignore;
 
 /**
  *
@@ -50,6 +56,13 @@ public class HarvesterIT {
     public void setUp() throws Exception {
         pg = new PostgresITDataSource("pgqueue");
         dataSource = pg.getDataSource();
+        try (Connection connection = dataSource.getConnection() ;
+             Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("DROP SCHEMA public CASCADE");
+            stmt.executeUpdate("CREATE SCHEMA public");
+            stmt.executeUpdate("CREATE TABLE queue ( job TEXT NOT NULL )");
+            stmt.executeUpdate("CREATE TABLE queue_error ( job TEXT NOT NULL )");
+        }
         pg.clearTables("queue", "queue_error");
         DatabaseMigrator.migrate(dataSource);
     }
