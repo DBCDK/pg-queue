@@ -41,6 +41,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+import org.hamcrest.Matchers;
 import org.junit.Ignore;
 
 /**
@@ -63,7 +64,6 @@ public class HarvesterIT {
             stmt.executeUpdate("CREATE TABLE queue ( job TEXT NOT NULL )");
             stmt.executeUpdate("CREATE TABLE queue_error ( job TEXT NOT NULL )");
         }
-        pg.clearTables("queue", "queue_error");
         DatabaseMigrator.migrate(dataSource);
     }
 
@@ -260,6 +260,38 @@ public class HarvesterIT {
         assertEquals(Arrays.asList("1,3".split(",")), remainingJobs);
     }
 
+    @Test(timeout = 2_000L)
+    public void testOnEmptyDatabase() throws Exception {
+        System.out.println("testOnEmptyDatabase");
+        try (Connection connection = dataSource.getConnection() ;
+             Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("DROP SCHEMA public CASCADE");
+            stmt.executeUpdate("CREATE SCHEMA public");
+            stmt.executeUpdate("CREATE TABLE queue ( jobber TEXT NOT NULL )");
+            stmt.executeUpdate("CREATE TABLE queue_error ( jobber TEXT NOT NULL )");
+        }
+        DatabaseMigrator.migrate(dataSource);
+        CountedDataSource countedDataSource = new CountedDataSource(dataSource);
+
+        JobConsumer<String> consumer = (JobConsumer<String>) (Connection c, String job, JobMetaData metaData) -> {
+        };
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
+                .dataSource(countedDataSource)
+                .emptyQueueSleep(200)
+                .databaseConnectThrottle("1/100ms")
+                .maxTries(2)
+                .consume("foo", "bar")
+                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION)
+                .build(consumer);
+
+        queueWorker.start();
+        Thread.sleep(250);
+        queueWorker.stop();
+        int count = countedDataSource.getConnectCount();
+        System.out.println("count = " + count);
+        assertThat(count, Matchers.lessThan(5));
+    }
+
     private void queue(String queueName, String... jobs) throws SQLException {
         try (Connection connection = dataSource.getConnection() ;
              PreparedStatement stmt = connection.prepareStatement("INSERT INTO queue(consumer, job) VALUES(?, ?)")) {
@@ -346,5 +378,67 @@ public class HarvesterIT {
             return originalJob;
         }
     };
+
+    private static class CountedDataSource implements DataSource {
+
+        private final DataSource parent;
+        private final AtomicInteger counter;
+
+        public CountedDataSource(DataSource parent) {
+            this.parent = parent;
+            this.counter = new AtomicInteger(0);
+        }
+
+        public int getConnectCount() {
+            return counter.get();
+        }
+
+        @Override
+        public boolean isWrapperFor(Class<?> iface) throws SQLException {
+            return parent.isWrapperFor(iface);
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> iface) throws SQLException {
+            return parent.unwrap(iface);
+        }
+
+        @Override
+        public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+            return parent.getParentLogger();
+        }
+
+        @Override
+        public int getLoginTimeout() throws SQLException {
+            return parent.getLoginTimeout();
+        }
+
+        @Override
+        public void setLoginTimeout(int seconds) throws SQLException {
+            parent.setLoginTimeout(seconds);
+        }
+
+        @Override
+        public void setLogWriter(PrintWriter out) throws SQLException {
+            parent.setLogWriter(out);
+        }
+
+        @Override
+        public PrintWriter getLogWriter() throws SQLException {
+            return parent.getLogWriter();
+        }
+
+        @Override
+        public Connection getConnection(String username, String password) throws SQLException {
+            counter.incrementAndGet();
+            return parent.getConnection(username, password);
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            counter.incrementAndGet();
+            return parent.getConnection();
+        }
+    }
 
 }

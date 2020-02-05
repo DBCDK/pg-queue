@@ -89,7 +89,7 @@ class JobWorker<T> implements Runnable {
                 log.info("Disconnecting from database");
                 relesePreparesStmts();
                 releaseConnection();
-            } catch (Exception ex) {
+            } catch (RuntimeException ex) {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
             }
@@ -116,15 +116,24 @@ class JobWorker<T> implements Runnable {
      *
      * @throws Exception If no connection can be made.
      */
-    private JobWithMetaData<T> nextJob() throws Exception {
+    private JobWithMetaData<T> nextJob() throws SQLException {
         JobWithMetaData<T> job = null;
         while (harvester.isRunning() && job == null) {
             if (connection == null || !connection.isValid(0)) {
                 relesePreparesStmts();
                 releaseConnection();
-                setupConnection();
+                try {
+                    harvester.settings.databaseConnectThrottle.throttle();
+                    setupConnection();
+                    job = fetchJob();
+                    harvester.settings.databaseConnectThrottle.register(true);
+                } catch (SQLException ex) {
+                    harvester.settings.databaseConnectThrottle.register(false);
+                    throw ex;
+                }
+            } else {
+                job = fetchJob();
             }
-            job = fetchJob();
         }
         log.debug("job = {}", job);
         return job;
@@ -401,7 +410,7 @@ class JobWorker<T> implements Runnable {
      * @throws SQLException from database errors
      */
     private void setupConnection() throws SQLException {
-        connection = harvester.getConnectionThrottled();
+        connection = harvester.getConnection();
     }
 
     /**

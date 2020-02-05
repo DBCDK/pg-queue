@@ -223,9 +223,7 @@ class Harvester<T> implements QueueWorker {
      * @return new Database connection
      * @throws SQLException
      */
-    Connection getConnectionThrottled() throws SQLException {
-        settings.databaseConnectThrottle.throttle();
-        boolean success = false;
+    Connection getConnection() throws SQLException {
         try (MetricAbstraction.Timer.Context time = databaseconnectTimer.time()) {
             Connection connection = dataSource.getConnection();
             try {
@@ -240,10 +238,7 @@ class Harvester<T> implements QueueWorker {
                     log.debug("Error closing connection after failure to set autocommit:", ex2);
                 }
             }
-            success = true;
             return connection;
-        } finally {
-            settings.databaseConnectThrottle.register(success);
         }
     }
 
