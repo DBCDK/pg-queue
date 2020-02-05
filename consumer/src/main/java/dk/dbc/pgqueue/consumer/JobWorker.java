@@ -119,17 +119,12 @@ class JobWorker<T> implements Runnable {
     private JobWithMetaData<T> nextJob() throws Exception {
         JobWithMetaData<T> job = null;
         while (harvester.isRunning() && job == null) {
-            try {
-                if (connection == null || !connection.isValid(0)) {
-                    relesePreparesStmts();
-                    releaseConnection();
-                    setupConnection();
-                }
-                job = fetchJob();
-            } catch (RuntimeException ex) {
-                exceptionUnwrap(ex, SQLException.class);
-                throw ex;
+            if (connection == null || !connection.isValid(0)) {
+                relesePreparesStmts();
+                releaseConnection();
+                setupConnection();
             }
+            job = fetchJob();
         }
         log.debug("job = {}", job);
         return job;
@@ -237,6 +232,7 @@ class JobWorker<T> implements Runnable {
      * <p>
      * Wait and rescan queue as needed
      *
+     * @param doNotWaitForJob if set returns null if no job can be fetched
      * @return new job or null if thread has been canceled
      * @throws SQLException If an error occurs
      */
@@ -390,8 +386,13 @@ class JobWorker<T> implements Runnable {
      * @param queue name of queue
      * @return timestamp (cached or retrieved)
      */
-    private Timestamp getTimestampFor(String queue) {
-        return timestamps.computeIfAbsent(queue, this::getTimestampFromDb);
+    private Timestamp getTimestampFor(String queue) throws SQLException {
+        try {
+            return timestamps.computeIfAbsent(queue, this::getTimestampFromDb);
+        } catch (RuntimeException ex) {
+            exceptionUnwrap(ex, SQLException.class);
+            throw ex;
+        }
     }
 
     /**
