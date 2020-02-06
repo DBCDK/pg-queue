@@ -87,14 +87,14 @@ class JobWorker<T> implements Runnable {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
                 log.info("Disconnecting from database");
-                relesePreparesStmts();
+                releasePreparedStmts();
                 releaseConnection();
             } catch (RuntimeException ex) {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
             }
         }
-        relesePreparesStmts();
+        releasePreparedStmts();
         releaseConnection();
     }
 
@@ -120,7 +120,7 @@ class JobWorker<T> implements Runnable {
         JobWithMetaData<T> job = null;
         while (harvester.isRunning() && job == null) {
             if (connection == null || !connection.isValid(0)) {
-                relesePreparesStmts();
+                releasePreparedStmts();
                 releaseConnection();
                 try {
                     harvester.settings.databaseConnectThrottle.throttle();
@@ -428,7 +428,7 @@ class JobWorker<T> implements Runnable {
     /**
      * Clear all prepared statements
      */
-    private void relesePreparesStmts() {
+    private void releasePreparedStmts() {
         if (timestampStmt != null) {
             sql(() -> timestampStmt.close(), "Error closing timestamp statement");
             timestampStmt = null;
@@ -489,7 +489,7 @@ class JobWorker<T> implements Runnable {
             if (elapsed >= harvester.settings.maxQueryTime) {
                 log.info("Query took {}ms, making new prepared statements", elapsed);
                 harvester.recalcPreparedStatementCounter.inc();
-                relesePreparesStmts();
+                releasePreparedStmts();
             }
         }
     }
