@@ -87,14 +87,14 @@ class JobWorker<T> implements Runnable {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
                 log.info("Disconnecting from database");
-                relesePreparesStmts();
+                releasePreparedStmts();
                 releaseConnection();
-            } catch (Exception ex) {
+            } catch (RuntimeException ex) {
                 log.error("Error fetching job: {}", ex.getMessage());
                 log.debug("Error fetching job:", ex);
             }
         }
-        relesePreparesStmts();
+        releasePreparedStmts();
         releaseConnection();
     }
 
@@ -116,19 +116,23 @@ class JobWorker<T> implements Runnable {
      *
      * @throws Exception If no connection can be made.
      */
-    private JobWithMetaData<T> nextJob() throws Exception {
+    private JobWithMetaData<T> nextJob() throws SQLException {
         JobWithMetaData<T> job = null;
         while (harvester.isRunning() && job == null) {
-            try {
-                if (connection == null || !connection.isValid(0)) {
-                    relesePreparesStmts();
-                    releaseConnection();
+            if (connection == null || !connection.isValid(0)) {
+                releasePreparedStmts();
+                releaseConnection();
+                try {
+                    harvester.settings.databaseConnectThrottle.throttle();
                     setupConnection();
+                    job = fetchJob(false);
+                    harvester.settings.databaseConnectThrottle.register(true);
+                } catch (SQLException ex) {
+                    harvester.settings.databaseConnectThrottle.register(false);
+                    throw ex;
                 }
-                job = fetchJob();
-            } catch (RuntimeException ex) {
-                exceptionUnwrap(ex, SQLException.class);
-                throw ex;
+            } else {
+                job = fetchJob(true);
             }
         }
         log.debug("job = {}", job);
@@ -237,10 +241,11 @@ class JobWorker<T> implements Runnable {
      * <p>
      * Wait and rescan queue as needed
      *
-     * @return new job or null if thread has been canceled
+     * @param waitForJob if not set returns null if no job can be fetched
+     * @return new job or null if thread has been canceled or not waiting
      * @throws SQLException If an error occurs
      */
-    private JobWithMetaData fetchJob() throws SQLException {
+    private JobWithMetaData fetchJob(boolean waitForJob) throws SQLException {
         harvester.settings.failureThrottle.throttle();
 
         boolean hasClearedTimestamps = false;
@@ -267,6 +272,8 @@ class JobWorker<T> implements Runnable {
                 }
             }
             connection.rollback();
+            if (!waitForJob)
+                return null;
             // idle state fullscan more often, and start with fullscan
             fullScanEvery = harvester.settings.idleFullScanEvery;
             if (!hasClearedTimestamps) {
@@ -390,8 +397,13 @@ class JobWorker<T> implements Runnable {
      * @param queue name of queue
      * @return timestamp (cached or retrieved)
      */
-    private Timestamp getTimestampFor(String queue) {
-        return timestamps.computeIfAbsent(queue, this::getTimestampFromDb);
+    private Timestamp getTimestampFor(String queue) throws SQLException {
+        try {
+            return timestamps.computeIfAbsent(queue, this::getTimestampFromDb);
+        } catch (RuntimeException ex) {
+            exceptionUnwrap(ex, SQLException.class);
+            throw ex;
+        }
     }
 
     /**
@@ -400,7 +412,7 @@ class JobWorker<T> implements Runnable {
      * @throws SQLException from database errors
      */
     private void setupConnection() throws SQLException {
-        connection = harvester.getConnectionThrottled();
+        connection = harvester.getConnection();
     }
 
     /**
@@ -416,7 +428,7 @@ class JobWorker<T> implements Runnable {
     /**
      * Clear all prepared statements
      */
-    private void relesePreparesStmts() {
+    private void releasePreparedStmts() {
         if (timestampStmt != null) {
             sql(() -> timestampStmt.close(), "Error closing timestamp statement");
             timestampStmt = null;
@@ -477,7 +489,7 @@ class JobWorker<T> implements Runnable {
             if (elapsed >= harvester.settings.maxQueryTime) {
                 log.info("Query took {}ms, making new prepared statements", elapsed);
                 harvester.recalcPreparedStatementCounter.inc();
-                relesePreparesStmts();
+                releasePreparedStmts();
             }
         }
     }

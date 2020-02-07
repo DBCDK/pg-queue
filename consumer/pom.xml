@@ -49,7 +49,6 @@
                             <pgPort>${postgresql.port}</pgPort>
                             <pgDbName>pgqueue</pgDbName>
                             <pgDbScripts>
-                                <pgDbScript>${basedir}/src/test/resources/queue-example.sql</pgDbScript>
                             </pgDbScripts>
                         </configuration>
                     </execution>
