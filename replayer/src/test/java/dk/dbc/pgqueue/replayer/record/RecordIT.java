@@ -49,7 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class RecordIT {
 
     private static final String QUEUE_NAME = "mine";
-    private static final long OFFSET_SLOP = 5L;
+    private static final long OFFSET_SLOP = 10L;
 
     private DataSource dataSource;
 

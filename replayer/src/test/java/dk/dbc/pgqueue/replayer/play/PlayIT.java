@@ -47,7 +47,7 @@ import static org.junit.Assert.fail;
 public class PlayIT {
 
     private static final String QUEUE_NAME = "mine";
-    private static final long OFFSET_SLOP = 10L;
+    private static final long OFFSET_SLOP = 15L;
 
     private DataSource dataSource;
 
