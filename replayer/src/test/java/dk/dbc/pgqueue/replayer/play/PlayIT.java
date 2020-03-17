@@ -47,7 +47,7 @@ import static org.junit.Assert.fail;
 public class PlayIT {
 
     private static final String QUEUE_NAME = "mine";
-    private static final long OFFSET_SLOP = 5L;
+    private static final long OFFSET_SLOP = 10L;
 
     private DataSource dataSource;
 
@@ -59,7 +59,7 @@ public class PlayIT {
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA PUBLIC CASCADE");
             stmt.executeUpdate("CREATE SCHEMA PUBLIC");
-            stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, catapillar JSONB )");
+            stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, caterpillar JSONB )");
             stmt.executeUpdate("CREATE TABLE queue_error AS SELECT * FROM queue");
         }
         DatabaseMigrator.migrate(dataSource);
@@ -77,19 +77,19 @@ public class PlayIT {
 
     @Test(timeout = 5_000L)
     public void testPlay() throws Exception {
-        System.out.println("testPlaye");
+        System.out.println("testPlay()");
 
         InputStream is = getClass().getClassLoader().getResourceAsStream("play-test.csv");
         GenericJobMapper mapper = GenericJobMapper.from(dataSource);
         try (Play play = new Play(dataSource, Long.MAX_VALUE, Long.MAX_VALUE, is, QUEUE_NAME, 1, mapper)) {
             play.run();
-            fail("expexted end of input exception");
+            fail("expected end of input exception");
         } catch (ExitException ex) {
             assertThat(ex.getStatusCode(), is(Arguments.EXIT_END_OF_INPUT));
         }
         try (Connection connection = dataSource.getConnection() ;
              Statement stmt = connection.createStatement() ;
-             ResultSet resultSet = stmt.executeQuery("SELECT dequeueafter, ape, badger, catapillar FROM queue ORDER BY dequeueAfter")) {
+             ResultSet resultSet = stmt.executeQuery("SELECT dequeueafter, ape, badger, caterpillar FROM queue ORDER BY dequeueAfter")) {
             assertThat(resultSet.next(), is(true));
             Instant firstTimestamp = resultSet.getTimestamp(1).toInstant();
             System.out.println("firstTimestamp = " + firstTimestamp);

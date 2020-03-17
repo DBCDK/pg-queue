@@ -145,7 +145,7 @@ public class Arguments extends CliArguments {
         try {
             return new FileInputStream(fileName);
         } catch (FileNotFoundException ex) {
-            throw new ExitException(1, fileName + ": " + ex.getMessage());
+            throw new ExitException(Arguments.EXIT_END_OF_INPUT, fileName + ": " + ex.getMessage());
         }
     }
 

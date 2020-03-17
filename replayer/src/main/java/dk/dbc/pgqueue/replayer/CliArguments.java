@@ -274,7 +274,7 @@ public class CliArguments {
             writer.flush();
         }
         if (hasError)
-            return new ExitException(1);
+            return new ExitException(42); // test
         return new ExitException(0);
     }
 

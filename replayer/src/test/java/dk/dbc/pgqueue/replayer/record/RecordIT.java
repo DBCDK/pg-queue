@@ -49,7 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class RecordIT {
 
     private static final String QUEUE_NAME = "mine";
-    private static final long OFFSET_SLOP = 1L;
+    private static final long OFFSET_SLOP = 5L;
 
     private DataSource dataSource;
 
@@ -61,7 +61,7 @@ public class RecordIT {
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA PUBLIC CASCADE");
             stmt.executeUpdate("CREATE SCHEMA PUBLIC");
-            stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, catapillar JSONB )");
+            stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, caterpillar JSONB )");
             stmt.executeUpdate("CREATE TABLE queue_error AS SELECT * FROM queue");
         }
         DatabaseMigrator.migrate(dataSource);
@@ -87,7 +87,7 @@ public class RecordIT {
             PreparedQueueSupplier<String[]> supplier = new QueueSupplier<>(mapper)
                     .preparedSupplier(connection);
             supplier.enqueue(QUEUE_NAME, job("zero", null, null), 100);
-            supplier.enqueue(QUEUE_NAME, job("fourty", 40, "{}"), 140);
+            supplier.enqueue(QUEUE_NAME, job("forty", 40, "{}"), 140);
             supplier.enqueue(QUEUE_NAME, job("sixtyfive", 65, "{\"a\": true}"), 165);
         }
 
@@ -104,7 +104,7 @@ public class RecordIT {
 
         assertThat(line.hasNext(), is(true));
         String header = line.next();
-        assertThat(header, is("offsetInMs,ape,badger,catapillar"));
+        assertThat(header, is("offsetInMs,ape,badger,caterpillar"));
 
         assertThat(line.hasNext(), is(true));
         String line1 = line.next();
@@ -114,7 +114,7 @@ public class RecordIT {
 
         assertThat(line.hasNext(), is(true));
         String line2 = line.next();
-        assertThat(line2, containsString("fourty"));
+        assertThat(line2, containsString("forty"));
         long offset2 = offsetFromLine(line2) - origin;
         assertThat(offset2, near(40L));
 
@@ -139,8 +139,8 @@ public class RecordIT {
         }
     }
 
-    private static String[] job(String ape, Integer badger, String catapillar) {
-        return new String[] {ape, badger == null ? null : String.valueOf(badger), catapillar};
+    private static String[] job(String ape, Integer badger, String caterpiller) {
+        return new String[] {ape, badger == null ? null : String.valueOf(badger), caterpiller};
     }
 
     private static long offsetFromLine(String line1) throws NumberFormatException {

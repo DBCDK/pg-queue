@@ -30,6 +30,8 @@ import java.util.List;
 import javax.sql.DataSource;
 import org.apache.commons.cli.Option;
 
+import static dk.dbc.pgqueue.replayer.play.Arguments.EXIT_END_OF_INPUT;
+
 /**
  *
  * @author Morten Bøgeskov (mb@dbc.dk)
@@ -108,7 +110,8 @@ public class Arguments extends CliArguments {
         try {
             return new FileOutputStream(fileName);
         } catch (FileNotFoundException ex) {
-            throw new ExitException(1, fileName + ": " + ex.getMessage());
+//            throw new ExitException(1, fileName + ": " + ex.getMessage());
+            throw new ExitException(EXIT_END_OF_INPUT, fileName + ": " + ex.getMessage());
         }
     }
 

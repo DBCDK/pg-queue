@@ -36,6 +36,7 @@ class Settings<T> {
     final List<String> consumerNames;
     final QueueStorageAbstraction<T> storageAbstraction;
     final DeduplicateAbstraction<T> deduplicateAbstraction;
+    final Boolean includePostponedInDeduplication;
     final int maxTries;
     final long window;
     final long emptyQueueSleep;
@@ -49,7 +50,7 @@ class Settings<T> {
     final QueueHealth health;
     final DeduplicateDisable deduplicateDisable;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricAbstraction metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, Boolean includePostponedInDeduplication, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricAbstraction metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
         this.maxTries = maxTries;
         this.window = window;
         this.emptyQueueSleep = emptyQueueSleep;
@@ -57,6 +58,7 @@ class Settings<T> {
         this.consumerNames = Collections.unmodifiableList(consumerNames);
         this.storageAbstraction = storageAbstraction;
         this.deduplicateAbstraction = deduplicateAbstraction;
+        this.includePostponedInDeduplication = includePostponedInDeduplication;
         this.databaseConnectThrottle = databaseConnectThrottle;
         this.failureThrottle = failureThrottle;
         this.fullScanEvery = fullScanEvery;

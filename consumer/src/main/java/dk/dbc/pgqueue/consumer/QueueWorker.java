@@ -117,6 +117,7 @@ public interface QueueWorker {
         private ExecutorService executor;
         private MetricAbstraction metricsAbstraction;
         private DeduplicateAbstraction<T> deduplicateAbstraction;
+        private Boolean includePostponedInDeduplication;
         private QueueHealth health;
 
         private Builder(QueueStorageAbstraction<T> storageAbstraction) {
@@ -134,6 +135,7 @@ public interface QueueWorker {
             this.executor = null;
             this.metricsAbstraction = null;
             this.deduplicateAbstraction = null;
+            this.includePostponedInDeduplication = null;
             this.health = null;
         }
 
@@ -193,6 +195,13 @@ public interface QueueWorker {
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
+            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, true, "includePostponedInDeduplication");
+            return this;
+        }
+
+        public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication) {
+            this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
+            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, includePostponedInDeduplication, "includePostponedInDeduplication");
             return this;
         }
 
@@ -369,9 +378,9 @@ public interface QueueWorker {
         }
 
         /**
-         * Set the executor, that the processing should run in.
+         * Set the executor the processing should run in.
          * <p>
-         * If none is set, a fixed threadpool with matching threads number to
+         * If none is set, a fixed thread pool with matching threads number to
          * consumer count
          *
          * @param executor the executor to run in
@@ -383,7 +392,7 @@ public interface QueueWorker {
         }
 
         /**
-         * Set the health instance, that database should report in.
+         * Set the health instance the database should report in.
          *
          * @param health the health instance
          * @return self
@@ -412,26 +421,26 @@ public interface QueueWorker {
         }
 
         /**
-         * Set where to register performance stats
+         * Set where to register performance stats (codahale style metrics)
          *
          * @param metricRegistry the registry (or null)
          * @return self
          */
         public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale)");
             return this;
         }
 
         /**
-         * Set where to register performance stats
+         * Set where to register performance stats (eclipse microprofile style metrics)
          *
          * @param metricRegistry the registry (or null)
          * @return self
          */
         public Builder<T> metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(MicroProfile)");
             return this;
         }
 
@@ -493,6 +502,7 @@ public interface QueueWorker {
             Settings config = new Settings(required(consumerNames, "queueNames should be set"),
                                            storageAbstraction,
                                            deduplicateAbstraction,
+                                           includePostponedInDeduplication,
                                            or(maxTries, 3),
                                            or(emptyQueueSleep, 10_000L),
                                            or(maxQueryTime, 50L),
