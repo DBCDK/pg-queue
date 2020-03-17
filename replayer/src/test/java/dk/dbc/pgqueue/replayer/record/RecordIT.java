@@ -23,14 +23,6 @@ import dk.dbc.pgqueue.DatabaseMigrator;
 import dk.dbc.pgqueue.PreparedQueueSupplier;
 import dk.dbc.pgqueue.QueueSupplier;
 import dk.dbc.pgqueue.replayer.GenericJobMapper;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Iterator;
-import javax.sql.DataSource;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -38,8 +30,18 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.sql.DataSource;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Iterator;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -139,8 +141,8 @@ public class RecordIT {
         }
     }
 
-    private static String[] job(String ape, Integer badger, String caterpiller) {
-        return new String[] {ape, badger == null ? null : String.valueOf(badger), caterpiller};
+    private static String[] job(String ape, Integer badger, String caterpillar) {
+        return new String[] {ape, badger == null ? null : String.valueOf(badger), caterpillar};
     }
 
     private static long offsetFromLine(String line1) throws NumberFormatException {

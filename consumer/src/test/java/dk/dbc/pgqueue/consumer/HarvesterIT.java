@@ -20,29 +20,29 @@ package dk.dbc.pgqueue.consumer;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
 import dk.dbc.pgqueue.DatabaseMigrator;
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
+import org.hamcrest.Matchers;
+import org.junit.Before;
+import org.junit.Test;
+
+import javax.sql.DataSource;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-
-import dk.dbc.pgqueue.DeduplicateAbstraction;
-import java.io.PrintWriter;
-import java.sql.SQLFeatureNotSupportedException;
-import java.sql.Statement;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import org.hamcrest.Matchers;
-import org.junit.Ignore;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 /**
  *
@@ -258,6 +258,46 @@ public class HarvesterIT {
 
         assertEquals(Arrays.asList("1,2".split(",")), jobs);
         assertEquals(Arrays.asList("1,3".split(",")), remainingJobs);
+    }
+
+    @Test(timeout = 5_000L)
+    public void testDeduplicationIncludePostponed() throws Exception {
+        System.out.println("testDeduplication");
+        ArrayList<String> jobs = new ArrayList<>();
+
+        JobConsumer<String> consumer = (JobConsumer<String>) (Connection c, String job, JobMetaData metaData) -> {
+            System.out.println("job = " + job + "; meta = " + metaData);
+            synchronized (jobs) {
+                jobs.add(job);
+                jobs.notifyAll();
+            }
+        };
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
+                .dataSource(dataSource)
+                .emptyQueueSleep(200)
+                .maxTries(2)
+                .consume("foo", "bar")
+                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION, true)
+                .build(consumer);
+
+        queue("foo", "1", "1", "1", "1", "2", "2", "2"); // collapse into 2 processings
+        queuePostponed("foo", 60, "1", "3"); // Needs to be deduplicated in this setting, even if postponed.
+        queueWorker.start();
+        synchronized (jobs) {
+            while (jobs.size() != 2) {
+                jobs.wait();
+                System.out.println("jobs = " + jobs);
+            }
+        }
+        queueWorker.stop();
+        queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
+
+        System.out.println("jobs = " + jobs);
+        ArrayList<String> remainingJobs = queueRemainingJobs("foo");
+        System.out.println("remainingJobs = " + remainingJobs);
+
+        assertEquals(Arrays.asList("1,2".split(",")), jobs);
+        assertEquals(Arrays.asList("3".split(",")), remainingJobs); // "1" from the postponed jobs was removed
     }
 
     @Test(timeout = 2_000L)

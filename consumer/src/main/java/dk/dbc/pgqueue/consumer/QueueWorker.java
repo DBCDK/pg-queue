@@ -18,22 +18,23 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import javax.sql.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import dk.dbc.pgqueue.DeduplicateAbstraction;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -194,7 +195,7 @@ public interface QueueWorker {
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
-            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, true, "includePostponedInDeduplication");
+            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, false, "includePostponedInDeduplication");
             return this;
         }
 
