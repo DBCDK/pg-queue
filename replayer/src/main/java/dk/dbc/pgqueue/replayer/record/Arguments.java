@@ -110,8 +110,7 @@ public class Arguments extends CliArguments {
         try {
             return new FileOutputStream(fileName);
         } catch (FileNotFoundException ex) {
-//            throw new ExitException(1, fileName + ": " + ex.getMessage());
-            throw new ExitException(EXIT_END_OF_INPUT, fileName + ": " + ex.getMessage());
+            throw new ExitException(1, fileName + ": " + ex.getMessage());
         }
     }
 

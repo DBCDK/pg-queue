@@ -77,7 +77,7 @@ public class PlayIT {
 
     @Test(timeout = 5_000L)
     public void testPlay() throws Exception {
-        System.out.println("testPlay()");
+        System.out.println("testPlay");
 
         InputStream is = getClass().getClassLoader().getResourceAsStream("play-test.csv");
         GenericJobMapper mapper = GenericJobMapper.from(dataSource);
@@ -104,7 +104,7 @@ public class PlayIT {
             long databaseOffset2 = Duration.between(firstTimestamp, resultSet.getTimestamp(1).toInstant()).toMillis();
             assertThat(databaseOffset2, near(65L));
             assertThat(resultSet.getString(2), is("me"));
-            assertThat(resultSet.getString(3), nullValue()); // Ensure null is passed througt
+            assertThat(resultSet.getString(3), nullValue()); // Ensure null is passed through
 
             assertThat(resultSet.next(), is(false));
         }

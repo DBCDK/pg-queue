@@ -180,7 +180,7 @@ public class CliArguments {
     }
 
     /**
-     * Check is an option is set
+     * Check if an option is set
      *
      * @param option option to test
      * @return is it has been set
@@ -246,7 +246,7 @@ public class CliArguments {
     }
 
     /**
-     * Outputs usage ang produces an exception to throw
+     * Outputs usage and produces an exception to throw
      *
      * @param error Message before usage null or empty string results in
      *              exit-code = 0
@@ -274,7 +274,7 @@ public class CliArguments {
             writer.flush();
         }
         if (hasError)
-            return new ExitException(42); // test
+            return new ExitException(1);
         return new ExitException(0);
     }
 

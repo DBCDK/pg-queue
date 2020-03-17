@@ -41,9 +41,9 @@ import org.slf4j.LoggerFactory;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
- * Play a cvs file agains a database queue.
+ * Play a cvs file against a database queue.
  * <p>
- * This could have been it's own project with this an jar entrypoint
+ * This could have been its own project with this as a jar entry point
  *
  * @author Morten Bøgeskov (mb@dbc.dk)
  */
@@ -110,7 +110,7 @@ public class Play implements AutoCloseable {
     }
 
     /**
-     * Entrypoint for processing file input
+     * Entry point for processing file input
      * <p>
      * Sets up input and database
      *
@@ -154,8 +154,7 @@ public class Play implements AutoCloseable {
      * @param csv     cvs file
      * @param enqueue Database queue handler
      * @throws ExitException        If there's som kind of error that needs to
-     *                              be
-     *                              reported with an exit status
+     *                              be reported with an exit status
      * @throws IOException          If reading of cvs file fails
      * @throws SQLException         If enqueueing fails
      * @throws InterruptedException if Control-C is pressed

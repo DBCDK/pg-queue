@@ -142,7 +142,7 @@ public interface QueueWorker {
         /**
          * Set which queues to consume from (required)
          * <p>
-         * Consumation is done in order ie. drain queue1 first then queue2, if
+         * Consummation is done in order ie. drain queue1 first then queue2, if
          * queue1 acquires new rows take them before continuing on queue2
          *
          * @param names list of consumer names
@@ -167,8 +167,7 @@ public interface QueueWorker {
         /**
          * Set number of tries, before failing a job
          *
-         * @param maxTries how persistent to try for successful processing of
-         *                 job
+         * @param maxTries how persistently to try for successful processing of job
          * @return self
          */
         public Builder<T> maxTries(int maxTries) {
@@ -188,7 +187,7 @@ public interface QueueWorker {
         }
 
         /**
-         * Set whether de duplication of jobs should occur
+         * Set whether deduplication of jobs should occur
          *
          * @param deduplicateAbstraction definition of what a duplicate job is
          * @return self
@@ -218,7 +217,7 @@ public interface QueueWorker {
 
         /**
          * How long a query (rescan queue for earliest timestamp) is allowed to
-         * take, before replanning prepared statements
+         * take, before re-planning prepared statements
          *
          * @param maxQueryTime number of milliseconds
          * @return self
@@ -242,7 +241,7 @@ public interface QueueWorker {
         /**
          * How often to rescan for earliest timestamp, when queue is empty.
          * <p>
-         * Setting this to 1, could lead to high database load
+         * Setting this to 1 could lead to high database load
          *
          * @param idleRescanEvery for every n idle sleeps rescan for earliest
          *                        timestamp
@@ -254,8 +253,7 @@ public interface QueueWorker {
         }
 
         /**
-         * Throttle string, for database connects (in case of connection
-         * failure)
+         * Throttle string, for database connects (in case of connection failure)
          *
          * @param databaseConnectThrottle throttle spec
          * @return self
@@ -266,8 +264,8 @@ public interface QueueWorker {
         }
 
         /**
-         * Sets a limit/periode (both timespecs) if deduplicate takes more than
-         * limit it is disabled for periode
+         * Sets a limit/period (both timespecs) if deduplicate takes more than
+         * limit it is disabled for period
          *
          * @param spec deduplicateDisable spec ({duration}/{duraion})
          * @return self

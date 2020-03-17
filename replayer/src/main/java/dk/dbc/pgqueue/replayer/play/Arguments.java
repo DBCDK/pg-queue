@@ -102,12 +102,12 @@ public class Arguments extends CliArguments {
                             String.format(Locale.ROOT, "%6d - %s", 1, "Terminated by input error"),
                             String.format(Locale.ROOT, "%6d - %s", EXIT_END_OF_INPUT, "Ran out of input before timeout"),
                             String.format(Locale.ROOT, "%6d - %s", EXIT_MAX_BEHIND, "Came too far behind in queueing (see --max-behind=DURATION)")),
-                "When running with --duration=... it is a good idea to have a significanly longer recording." +
-                " If you recording is n sec and your duration is n sec and you playback speed is 100%," +
-                " then we cannot determine if we're at end of duration or input." +
+                "When running with --duration=... it is a good idea to have a significantly longer recording." +
+                " If your recording is n sec and your duration is n sec and you playback speed is 100%," +
+                " then we cannot determine if we are at end of duration or input." +
                 " Result is end of input error.",
-                "All columns in the queue job should be convertable to/from strings" +
-                " without dataloss for this to work."
+                "All columns in the queue job should be convertible to/from strings" +
+                " without data loss for this to work."
         );
     }
 
@@ -145,7 +145,7 @@ public class Arguments extends CliArguments {
         try {
             return new FileInputStream(fileName);
         } catch (FileNotFoundException ex) {
-            throw new ExitException(Arguments.EXIT_END_OF_INPUT, fileName + ": " + ex.getMessage());
+            throw new ExitException(1, fileName + ": " + ex.getMessage());
         }
     }
 
@@ -156,7 +156,7 @@ public class Arguments extends CliArguments {
     /**
      * Time stretch
      *
-     * @return a factor with which to scale the offset in the file with
+     * @return a factor with which to scale the offset in the file
      * @throws ExitException If scale is invalid
      */
     public double getScale() throws ExitException {
