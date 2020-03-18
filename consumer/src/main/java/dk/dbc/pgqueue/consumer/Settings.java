@@ -36,7 +36,7 @@ class Settings<T> {
     final List<String> consumerNames;
     final QueueStorageAbstraction<T> storageAbstraction;
     final DeduplicateAbstraction<T> deduplicateAbstraction;
-    final Boolean includePostponedInDeduplication;
+    final boolean includePostponedInDeduplication;
     final int maxTries;
     final long window;
     final long emptyQueueSleep;
@@ -50,7 +50,7 @@ class Settings<T> {
     final QueueHealth health;
     final DeduplicateDisable deduplicateDisable;
 
-    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, Boolean includePostponedInDeduplication, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricAbstraction metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
+    Settings(List<String> consumerNames, QueueStorageAbstraction<T> storageAbstraction, DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication, int maxTries, long emptyQueueSleep, long maxQueryTime, int fullScanEvery, int idleFullScanEvery, Throttle databaseConnectThrottle, Throttle failureThrottle, ExecutorService executor, MetricAbstraction metricRegistry, long window, QueueHealth health, DeduplicateDisable deduplicateDisable) {
         this.maxTries = maxTries;
         this.window = window;
         this.emptyQueueSleep = emptyQueueSleep;

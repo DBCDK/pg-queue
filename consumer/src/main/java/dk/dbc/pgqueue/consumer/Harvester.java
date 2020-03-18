@@ -165,11 +165,9 @@ class Harvester<T> implements QueueWorker {
             String whereClause = Arrays.stream(duplicateDeleteColumns)
                     .map(s -> s + "=?")
                     .collect(Collectors.joining(" AND "));
-            if (config.includePostponedInDeduplication != null && config.includePostponedInDeduplication) {
-                this.deleteDuplicateSql = String.format(SqlDeleteDuplicateIncludePostponed.SQL, whereClause, whereClause, jobColumns);
-            } else {
-                this.deleteDuplicateSql = String.format(SqlDeleteDuplicate.SQL, whereClause, whereClause, jobColumns);
-            }
+            this.deleteDuplicateSql = config.includePostponedInDeduplication
+                ? String.format(SqlDeleteDuplicateIncludePostponed.SQL, whereClause, whereClause, jobColumns)
+                : String.format(SqlDeleteDuplicate.SQL, whereClause, whereClause, jobColumns);
         }
         this.databaseconnectTimer = makeTimer("databaseconnect");
         this.dequeueTimer = makeTimer("dequeue");

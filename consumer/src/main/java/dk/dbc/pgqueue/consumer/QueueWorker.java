@@ -118,7 +118,7 @@ public interface QueueWorker {
         private ExecutorService executor;
         private MetricAbstraction metricsAbstraction;
         private DeduplicateAbstraction<T> deduplicateAbstraction;
-        private Boolean includePostponedInDeduplication;
+        private boolean includePostponedInDeduplication;
         private QueueHealth health;
 
         private Builder(QueueStorageAbstraction<T> storageAbstraction) {
@@ -136,7 +136,7 @@ public interface QueueWorker {
             this.executor = null;
             this.metricsAbstraction = null;
             this.deduplicateAbstraction = null;
-            this.includePostponedInDeduplication = null;
+            this.includePostponedInDeduplication = false;
             this.health = null;
         }
 
@@ -188,17 +188,22 @@ public interface QueueWorker {
         }
 
         /**
-         * Set whether deduplication of jobs should occur
+         * Set whether deduplication of jobs should occur. Does not include postponed jobs.
          *
          * @param deduplicateAbstraction definition of what a duplicate job is
          * @return self
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
-            this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
-            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, false, "includePostponedInDeduplication");
-            return this;
+            return skipDuplicateJobs(deduplicateAbstraction, false);
         }
 
+        /**
+         * Set whether deduplication of jobs should occur and whether deduplication should include postponed items.
+         *
+         * @param deduplicateAbstraction definition of what a duplicate job is
+         * @param includePostponedInDeduplication whether to include postponed items when deduplicating
+         * @return self
+         */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
             this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, includePostponedInDeduplication, "includePostponedInDeduplication");
