@@ -18,6 +18,10 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -26,9 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import javax.sql.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link QueueWorker}, that
@@ -74,12 +75,25 @@ class Harvester<T> implements QueueWorker {
     static class SqlDeleteDuplicate {
 
         private static final String SQL = "DELETE" +
-                                          " FROM queue" +
-                                          " WHERE consumer=?" +
-                                          " AND dequeueAfter<=clock_timestamp()" +
-                                          " AND CTID IN (SELECT CTID FROM queue WHERE consumer = ? AND %s FOR UPDATE SKIP LOCKED)" +
-                                          " AND %s" +
-                                          " RETURNING " + JobMetaData.COLUMNS + ", %s";
+                " FROM queue" +
+                " WHERE consumer=?" +
+                " AND dequeueAfter<=clock_timestamp()" +
+                " AND CTID IN (SELECT CTID FROM queue WHERE consumer = ? AND %s FOR UPDATE SKIP LOCKED)" +
+                " AND %s" +
+                " RETURNING " + JobMetaData.COLUMNS + ", %s";
+    }
+
+    static class SqlDeleteDuplicateIncludePostponed {
+
+        private static final String SQL = "DELETE" +
+                " FROM queue" +
+                " WHERE consumer=?" +
+                " AND CTID IN (SELECT CTID FROM queue WHERE consumer = ? AND %s FOR UPDATE SKIP LOCKED)" +
+                " AND %s" +
+                " RETURNING " + JobMetaData.COLUMNS + ", %s";
+    }
+
+    static class SqlDeleteDuplicatePositions {
         static final int CONSUMER_POS_1 = 1;
         static final int CONSUMER_POS_2 = 2;
         static final int DUPLICATE_POS = 3;
@@ -151,7 +165,9 @@ class Harvester<T> implements QueueWorker {
             String whereClause = Arrays.stream(duplicateDeleteColumns)
                     .map(s -> s + "=?")
                     .collect(Collectors.joining(" AND "));
-            this.deleteDuplicateSql = String.format(SqlDeleteDuplicate.SQL, whereClause, whereClause, jobColumns);
+            this.deleteDuplicateSql = config.includePostponedInDeduplication
+                ? String.format(SqlDeleteDuplicateIncludePostponed.SQL, whereClause, whereClause, jobColumns)
+                : String.format(SqlDeleteDuplicate.SQL, whereClause, whereClause, jobColumns);
         }
         this.databaseconnectTimer = makeTimer("databaseconnect");
         this.dequeueTimer = makeTimer("dequeue");

@@ -18,22 +18,23 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+import dk.dbc.pgqueue.DeduplicateAbstraction;
 import dk.dbc.pgqueue.QueueStorageAbstraction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import javax.sql.DataSource;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import dk.dbc.pgqueue.DeduplicateAbstraction;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -117,6 +118,7 @@ public interface QueueWorker {
         private ExecutorService executor;
         private MetricAbstraction metricsAbstraction;
         private DeduplicateAbstraction<T> deduplicateAbstraction;
+        private boolean includePostponedInDeduplication;
         private QueueHealth health;
 
         private Builder(QueueStorageAbstraction<T> storageAbstraction) {
@@ -134,13 +136,14 @@ public interface QueueWorker {
             this.executor = null;
             this.metricsAbstraction = null;
             this.deduplicateAbstraction = null;
+            this.includePostponedInDeduplication = false;
             this.health = null;
         }
 
         /**
          * Set which queues to consume from (required)
          * <p>
-         * Consumation is done in order ie. drain queue1 first then queue2, if
+         * Consummation is done in order ie. drain queue1 first then queue2, if
          * queue1 acquires new rows take them before continuing on queue2
          *
          * @param names list of consumer names
@@ -165,8 +168,7 @@ public interface QueueWorker {
         /**
          * Set number of tries, before failing a job
          *
-         * @param maxTries how persistent to try for successful processing of
-         *                 job
+         * @param maxTries how persistently to try for successful processing of job
          * @return self
          */
         public Builder<T> maxTries(int maxTries) {
@@ -186,13 +188,25 @@ public interface QueueWorker {
         }
 
         /**
-         * Set whether de duplication of jobs should occur
+         * Set whether deduplication of jobs should occur. Does not include postponed jobs.
          *
          * @param deduplicateAbstraction definition of what a duplicate job is
          * @return self
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
+            return skipDuplicateJobs(deduplicateAbstraction, false);
+        }
+
+        /**
+         * Set whether deduplication of jobs should occur and whether deduplication should include postponed items.
+         *
+         * @param deduplicateAbstraction definition of what a duplicate job is
+         * @param includePostponedInDeduplication whether to include postponed items when deduplicating
+         * @return self
+         */
+        public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
+            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, includePostponedInDeduplication, "includePostponedInDeduplication");
             return this;
         }
 
@@ -209,7 +223,7 @@ public interface QueueWorker {
 
         /**
          * How long a query (rescan queue for earliest timestamp) is allowed to
-         * take, before replanning prepared statements
+         * take, before re-planning prepared statements
          *
          * @param maxQueryTime number of milliseconds
          * @return self
@@ -233,7 +247,7 @@ public interface QueueWorker {
         /**
          * How often to rescan for earliest timestamp, when queue is empty.
          * <p>
-         * Setting this to 1, could lead to high database load
+         * Setting this to 1 could lead to high database load
          *
          * @param idleRescanEvery for every n idle sleeps rescan for earliest
          *                        timestamp
@@ -245,8 +259,7 @@ public interface QueueWorker {
         }
 
         /**
-         * Throttle string, for database connects (in case of connection
-         * failure)
+         * Throttle string, for database connects (in case of connection failure)
          *
          * @param databaseConnectThrottle throttle spec
          * @return self
@@ -257,8 +270,8 @@ public interface QueueWorker {
         }
 
         /**
-         * Sets a limit/periode (both timespecs) if deduplicate takes more than
-         * limit it is disabled for periode
+         * Sets a limit/period (both timespecs) if deduplicate takes more than
+         * limit it is disabled for period
          *
          * @param spec deduplicateDisable spec ({duration}/{duraion})
          * @return self
@@ -369,9 +382,9 @@ public interface QueueWorker {
         }
 
         /**
-         * Set the executor, that the processing should run in.
+         * Set the executor the processing should run in.
          * <p>
-         * If none is set, a fixed threadpool with matching threads number to
+         * If none is set, a fixed thread pool with matching threads number to
          * consumer count
          *
          * @param executor the executor to run in
@@ -383,7 +396,7 @@ public interface QueueWorker {
         }
 
         /**
-         * Set the health instance, that database should report in.
+         * Set the health instance the database should report in.
          *
          * @param health the health instance
          * @return self
@@ -412,26 +425,26 @@ public interface QueueWorker {
         }
 
         /**
-         * Set where to register performance stats
+         * Set where to register performance stats (codahale style metrics)
          *
          * @param metricRegistry the registry (or null)
          * @return self
          */
         public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale)");
             return this;
         }
 
         /**
-         * Set where to register performance stats
+         * Set where to register performance stats (eclipse microprofile style metrics)
          *
          * @param metricRegistry the registry (or null)
          * @return self
          */
         public Builder<T> metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(MicroProfile)");
             return this;
         }
 
@@ -493,6 +506,7 @@ public interface QueueWorker {
             Settings config = new Settings(required(consumerNames, "queueNames should be set"),
                                            storageAbstraction,
                                            deduplicateAbstraction,
+                                           includePostponedInDeduplication,
                                            or(maxTries, 3),
                                            or(emptyQueueSleep, 10_000L),
                                            or(maxQueryTime, 50L),

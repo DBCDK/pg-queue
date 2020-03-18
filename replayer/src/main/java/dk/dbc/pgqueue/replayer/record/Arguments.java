@@ -22,13 +22,14 @@ import dk.dbc.pgqueue.replayer.CliArguments;
 import dk.dbc.pgqueue.replayer.Converters;
 import dk.dbc.pgqueue.replayer.Database;
 import dk.dbc.pgqueue.replayer.ExitException;
+import org.apache.commons.cli.Option;
+
+import javax.sql.DataSource;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
-import javax.sql.DataSource;
-import org.apache.commons.cli.Option;
 
 /**
  *

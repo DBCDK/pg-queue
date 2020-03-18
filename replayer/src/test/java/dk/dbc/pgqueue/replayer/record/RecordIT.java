@@ -23,14 +23,6 @@ import dk.dbc.pgqueue.DatabaseMigrator;
 import dk.dbc.pgqueue.PreparedQueueSupplier;
 import dk.dbc.pgqueue.QueueSupplier;
 import dk.dbc.pgqueue.replayer.GenericJobMapper;
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.Iterator;
-import javax.sql.DataSource;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -38,8 +30,18 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import javax.sql.DataSource;
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.Iterator;
+
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 /**
@@ -49,7 +51,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class RecordIT {
 
     private static final String QUEUE_NAME = "mine";
-    private static final long OFFSET_SLOP = 1L;
+    private static final long OFFSET_SLOP = 10L;
 
     private DataSource dataSource;
 
@@ -61,7 +63,7 @@ public class RecordIT {
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA PUBLIC CASCADE");
             stmt.executeUpdate("CREATE SCHEMA PUBLIC");
-            stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, catapillar JSONB )");
+            stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, caterpillar JSONB )");
             stmt.executeUpdate("CREATE TABLE queue_error AS SELECT * FROM queue");
         }
         DatabaseMigrator.migrate(dataSource);
@@ -87,7 +89,7 @@ public class RecordIT {
             PreparedQueueSupplier<String[]> supplier = new QueueSupplier<>(mapper)
                     .preparedSupplier(connection);
             supplier.enqueue(QUEUE_NAME, job("zero", null, null), 100);
-            supplier.enqueue(QUEUE_NAME, job("fourty", 40, "{}"), 140);
+            supplier.enqueue(QUEUE_NAME, job("forty", 40, "{}"), 140);
             supplier.enqueue(QUEUE_NAME, job("sixtyfive", 65, "{\"a\": true}"), 165);
         }
 
@@ -104,7 +106,7 @@ public class RecordIT {
 
         assertThat(line.hasNext(), is(true));
         String header = line.next();
-        assertThat(header, is("offsetInMs,ape,badger,catapillar"));
+        assertThat(header, is("offsetInMs,ape,badger,caterpillar"));
 
         assertThat(line.hasNext(), is(true));
         String line1 = line.next();
@@ -114,7 +116,7 @@ public class RecordIT {
 
         assertThat(line.hasNext(), is(true));
         String line2 = line.next();
-        assertThat(line2, containsString("fourty"));
+        assertThat(line2, containsString("forty"));
         long offset2 = offsetFromLine(line2) - origin;
         assertThat(offset2, near(40L));
 
@@ -139,8 +141,8 @@ public class RecordIT {
         }
     }
 
-    private static String[] job(String ape, Integer badger, String catapillar) {
-        return new String[] {ape, badger == null ? null : String.valueOf(badger), catapillar};
+    private static String[] job(String ape, Integer badger, String caterpillar) {
+        return new String[] {ape, badger == null ? null : String.valueOf(badger), caterpillar};
     }
 
     private static long offsetFromLine(String line1) throws NumberFormatException {

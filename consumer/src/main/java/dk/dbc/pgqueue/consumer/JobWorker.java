@@ -18,6 +18,9 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,8 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -621,12 +622,12 @@ class JobWorker<T> implements Runnable {
                 deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
             }
         }
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS_1, job.getConsumer());
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicate.CONSUMER_POS_2, job.getConsumer());
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_1, job.getConsumer());
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_2, job.getConsumer());
         harvester.settings.deduplicateAbstraction
-                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicate.DUPLICATE_POS);
+                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicatePositions.DUPLICATE_POS);
         harvester.settings.deduplicateAbstraction
-                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicate.DUPLICATE_POS + harvester.getDuplicateDeleteColumnsCount());
+                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicatePositions.DUPLICATE_POS + harvester.getDuplicateDeleteColumnsCount());
         return deleteDuplicateStmt;
     }
 
