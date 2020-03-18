@@ -206,7 +206,7 @@ public interface QueueWorker {
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
-            this.includePostponedInDeduplication = setOrFail(this.includePostponedInDeduplication, includePostponedInDeduplication, "includePostponedInDeduplication");
+            this.includePostponedInDeduplication = includePostponedInDeduplication;
             return this;
         }
 
