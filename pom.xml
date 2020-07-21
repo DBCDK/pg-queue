@@ -29,11 +29,6 @@
         <module>replayer</module>
     </modules>
 
-    <properties>
-        <hamcrest.version>2.2</hamcrest.version>
-        <mockito.version>1.10.19</mockito.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -51,18 +46,14 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-all</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
+            <artifactId>mockito-core</artifactId>
         </dependency>
     </dependencies>
 </project>

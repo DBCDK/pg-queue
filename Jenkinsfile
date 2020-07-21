@@ -1,18 +1,24 @@
 pipeline {
     agent { label "devel10" }
+
     tools {
         maven "maven 3.5"
     }
+
     environment {
         MAVEN_OPTS = "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
     }
+
     triggers {
         pollSCM("H/3 * * * *")
+        upstream('/Docker-payara5-bump-trigger')
     }
+
     options {
         buildDiscarder(logRotator(artifactDaysToKeepStr: "", artifactNumToKeepStr: "", daysToKeepStr: "30", numToKeepStr: "30"))
         timestamps()
     }
+
     stages {
         stage("build") {
             steps {
@@ -95,6 +101,7 @@ pipeline {
             }
         }
     }
+
     post {
         always {
             script {
@@ -103,6 +110,7 @@ pipeline {
                 archiveArtifacts artifacts: 'version.txt', fingerprint: true
             }
         }
+
         failure {
             script {
                 if ("${env.BRANCH_NAME}" == 'master') {
@@ -131,6 +139,7 @@ pipeline {
                 }
             }
         }
+
         success {
             step([$class: 'JavadocArchiver', javadocDir: 'target/site/apidocs', keepAll: false])
             archiveArtifacts artifacts: '**/target/*-jar-with-dependencies.jar', fingerprint: true
