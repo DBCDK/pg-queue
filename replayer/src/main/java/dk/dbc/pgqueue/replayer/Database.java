@@ -54,9 +54,9 @@ public class Database {
             dataSource.setUser(user);
         if (pass != null)
             dataSource.setPassword(pass);
-        dataSource.setServerName(host);
+        dataSource.setServerNames(new String[] {host});
         if (port != null)
-            dataSource.setPortNumber(Integer.parseInt(port));
+            dataSource.setPortNumbers(new int[] {Integer.parseInt(port)});
         dataSource.setDatabaseName(base);
         return dataSource;
     }
