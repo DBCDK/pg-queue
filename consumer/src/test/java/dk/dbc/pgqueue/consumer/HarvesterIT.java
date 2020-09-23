@@ -41,8 +41,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.MatcherAssert.*;
 
 /**
  *
@@ -100,7 +100,7 @@ public class HarvesterIT {
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
         System.out.println("jobs = " + jobs);
-        assertEquals(Arrays.asList("0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,g,h,i,j".split(",")), jobs);
+        assertThat(jobs, contains("0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,g,h,i,j".split(",")));
     }
 
     @Test(timeout = 5_000L)
@@ -138,7 +138,7 @@ public class HarvesterIT {
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
         System.out.println("jobs = " + jobs);
-        assertEquals(Arrays.asList("0,1,2,3,4,1".split(",")), jobs);
+        assertThat(jobs, contains("0,1,2,3,4,1".split(",")));
     }
 
     @Test(timeout = 5_000L)
@@ -177,8 +177,8 @@ public class HarvesterIT {
 
         System.out.println("jobs = " + jobs);
         System.out.println("failedJobs = " + failedJobs());
-        assertEquals(Arrays.asList("0,0,1".split(",")), jobs);
-        assertEquals(Arrays.asList("0".split(",")), failedJobs());
+        assertThat(jobs, contains("0,0,1".split(",")));
+        assertThat(failedJobs(), contains("0".split(",")));
     }
 
     @Test(timeout = 5_000L)
@@ -216,8 +216,8 @@ public class HarvesterIT {
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
         System.out.println("jobs = " + jobs);
-        assertEquals(Arrays.asList("0,1".split(",")), jobs);
-        assertEquals(Arrays.asList("0".split(",")), failedJobs());
+        assertThat(jobs, contains("0,1".split(",")));
+        assertThat(failedJobs(), contains("0".split(",")));
     }
 
     @Test(timeout = 5_000L)
@@ -256,8 +256,8 @@ public class HarvesterIT {
         ArrayList<String> remainingJobs = queueRemainingJobs("foo");
         System.out.println("remainingJobs = " + remainingJobs);
 
-        assertEquals(Arrays.asList("1,2".split(",")), jobs);
-        assertEquals(Arrays.asList("1,3".split(",")), remainingJobs);
+        assertThat(jobs, contains("1,2".split(",")));
+        assertThat(remainingJobs, contains("1,3".split(",")));
     }
 
     @Test(timeout = 5_000L)
@@ -296,8 +296,8 @@ public class HarvesterIT {
         ArrayList<String> remainingJobs = queueRemainingJobs("foo");
         System.out.println("remainingJobs = " + remainingJobs);
 
-        assertEquals(Arrays.asList("1,2".split(",")), jobs);
-        assertEquals(Arrays.asList("3".split(",")), remainingJobs); // "1" from the postponed jobs was removed
+        assertThat(jobs, contains("1,2".split(",")));
+        assertThat(remainingJobs, contains("3".split(","))); // "1" from the postponed jobs was removed
     }
 
     @Test(timeout = 2_000L)
