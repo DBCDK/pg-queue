@@ -4,24 +4,24 @@
     <parent>
         <groupId>dk.dbc</groupId>
         <artifactId>pg-queue</artifactId>
-        <version>1.3-SNAPSHOT</version>
+        <version>1.4-SNAPSHOT</version>
     </parent>
     <artifactId>pg-queue-replayer</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
-            <groupId>dk.dbc</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>pg-queue-common</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>dk.dbc</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>pg-queue-consumer</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>dk.dbc</groupId>
+            <groupId>${project.groupId}</groupId>
             <artifactId>pg-queue-supplier</artifactId>
             <version>${project.version}</version>
         </dependency>

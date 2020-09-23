@@ -21,25 +21,57 @@ package dk.dbc.pgqueue.consumer;
 /**
  * An exception that {@link JobConsumer} can throw, if the job should not be
  * retried
+ * <p>
+ * It has a boolean (defaults to true), to tell if this exception should cause
+ * throttling
  *
  * @author DBC {@literal <dbc.dk>}
  */
 public class FatalQueueError extends Exception {
 
-    private static final long serialVersionUID = 2779580015877060470L;
+    private static final long serialVersionUID = 0xA0C8DD3D76A08C8BL;
+
+    private final boolean throttle;
 
     public FatalQueueError() {
+        this.throttle = true;
     }
 
     public FatalQueueError(String message) {
         super(message);
+        this.throttle = true;
     }
 
     public FatalQueueError(String message, Throwable cause) {
         super(message, cause);
+        this.throttle = true;
     }
 
     public FatalQueueError(Throwable cause) {
         super(cause);
+        this.throttle = true;
+    }
+
+    public FatalQueueError(boolean throttle) {
+        this.throttle = throttle;
+    }
+
+    public FatalQueueError(boolean throttle, String message) {
+        super(message);
+        this.throttle = throttle;
+    }
+
+    public FatalQueueError(boolean throttle, String message, Throwable cause) {
+        super(message, cause);
+        this.throttle = throttle;
+    }
+
+    public FatalQueueError(boolean throttle, Throwable cause) {
+        super(cause);
+        this.throttle = throttle;
+    }
+
+    public boolean shouldThrottle() {
+        return throttle;
     }
 }

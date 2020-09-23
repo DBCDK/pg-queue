@@ -176,6 +176,8 @@ class JobWorker<T> implements Runnable {
                 success = true;
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
             } catch (FatalQueueError ex) {
+                if(! ex.shouldThrottle())
+                    success = true;
                 log.info("Fatal error: {}", ex.getMessage());
                 log.debug("Fatal error: ", ex);
                 connection.rollback(savepoint);
