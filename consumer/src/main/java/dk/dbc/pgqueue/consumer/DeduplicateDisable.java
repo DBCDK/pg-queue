@@ -29,7 +29,7 @@ class DeduplicateDisable {
     private long disableUntil;
 
     public DeduplicateDisable() {
-        limit = 0;
+        limit = Long.MAX_VALUE;
         disablePeriod = 0;
         disableUntil = 0;
     }
