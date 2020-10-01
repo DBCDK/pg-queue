@@ -35,7 +35,6 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -94,12 +93,12 @@ public class HarvesterIT {
         synchronized (jobs) {
             while (jobs.size() != 20) {
                 jobs.wait();
+                System.out.println("jobs = " + jobs);
             }
         }
         queueWorker.stop();
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
-        System.out.println("jobs = " + jobs);
         assertThat(jobs, contains("0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,g,h,i,j".split(",")));
     }
 
@@ -137,7 +136,6 @@ public class HarvesterIT {
         queueWorker.stop();
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
-        System.out.println("jobs = " + jobs);
         assertThat(jobs, contains("0,1,2,3,4,1".split(",")));
     }
 
@@ -175,7 +173,6 @@ public class HarvesterIT {
         queueWorker.stop();
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
-        System.out.println("jobs = " + jobs);
         System.out.println("failedJobs = " + failedJobs());
         assertThat(jobs, contains("0,0,1".split(",")));
         assertThat(failedJobs(), contains("0".split(",")));
@@ -215,7 +212,6 @@ public class HarvesterIT {
         queueWorker.stop();
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
-        System.out.println("jobs = " + jobs);
         assertThat(jobs, contains("0,1".split(",")));
         assertThat(failedJobs(), contains("0".split(",")));
     }
@@ -252,7 +248,6 @@ public class HarvesterIT {
         queueWorker.stop();
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
-        System.out.println("jobs = " + jobs);
         ArrayList<String> remainingJobs = queueRemainingJobs("foo");
         System.out.println("remainingJobs = " + remainingJobs);
 
@@ -277,7 +272,7 @@ public class HarvesterIT {
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
-                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION, true)
+                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION, true, false)
                 .build(consumer);
 
         queue("foo", "1", "1", "1", "1", "2", "2", "2"); // collapse into 2 processings
@@ -292,12 +287,105 @@ public class HarvesterIT {
         queueWorker.stop();
         queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
 
-        System.out.println("jobs = " + jobs);
         ArrayList<String> remainingJobs = queueRemainingJobs("foo");
         System.out.println("remainingJobs = " + remainingJobs);
 
         assertThat(jobs, contains("1,2".split(",")));
         assertThat(remainingJobs, contains("3".split(","))); // "1" from the postponed jobs was removed
+    }
+
+    @Test(timeout = 2_000L)
+    public void testDeduplicateOnlyOwnQueue() throws Exception {
+        System.out.println("testDeduplicateOnlyOwnQueue");
+        ArrayList<String> jobs = new ArrayList<>();
+
+        JobConsumer<String> consumer = (JobConsumer<String>) (Connection c, String job, JobMetaData metaData) -> {
+            System.out.println("job = " + job + "; meta = " + metaData);
+            synchronized (jobs) {
+                jobs.add(job);
+                jobs.notifyAll();
+            }
+        };
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
+                .dataSource(dataSource)
+                .emptyQueueSleep(200)
+                .maxTries(2)
+                .consume("foo", "bar")
+                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION, true, false)
+                .build(consumer);
+
+        queue("foo", "1", "1", "1", "1", "2", "2", "2"); // collapse into 2 processings
+        queue("bar", "1", "1", "1", "1", "2", "2", "2"); // Not deduplicated
+
+        queueWorker.start();
+        synchronized (jobs) {
+            while (jobs.size() != 2) {
+                jobs.wait();
+                System.out.println("jobs = " + jobs);
+            }
+        }
+        queueWorker.stop();
+        queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
+
+        ArrayList<String> remainingJobsFoo = queueRemainingJobs("foo");
+        ArrayList<String> remainingJobsBar = queueRemainingJobs("bar");
+
+        System.out.println("remainingJobsFoo = " + remainingJobsFoo);
+        System.out.println("remainingJobsBar = " + remainingJobsBar);
+
+        assertThat(jobs, contains("1,2".split(",")));
+        assertThat(remainingJobsFoo, empty());
+        assertThat(remainingJobsBar, contains("1,1,1,1,2,2,2".split(",")));
+    }
+
+    @Test(timeout = 2_000L)
+    public void testDeduplicateAllQueues() throws Exception {
+        {
+            ArrayList<String> remainingJobsFoo = queueRemainingJobs("foo");
+            System.out.println("remainingJobsFoo = " + remainingJobsFoo);
+            ArrayList<String> remainingJobsBar = queueRemainingJobs("bar");
+            System.out.println("remainingJobsBar = " + remainingJobsBar);
+        }
+        System.out.println("testDeduplicateAllQueues");
+        ArrayList<String> jobs = new ArrayList<>();
+
+        JobConsumer<String> consumer = (JobConsumer<String>) (Connection c, String job, JobMetaData metaData) -> {
+            System.out.println("job = " + job + "; meta = " + metaData);
+            synchronized (jobs) {
+                jobs.add(job);
+                jobs.notifyAll();
+            }
+        };
+        QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
+                .dataSource(dataSource)
+                .emptyQueueSleep(200)
+                .maxTries(2)
+                .consume("foo", "bar")
+                .skipDuplicateJobs(DEDUPLICATE_ABSTRACTION, true, true)
+                .build(consumer);
+
+        queue("foo", "1", "1", "1", "1", "2", "2", "2"); // collapse into 2 processings
+        queue("bar", "1", "1", "1", "1", "2", "2", "2"); // Also deduplicated
+
+        queueWorker.start();
+        synchronized (jobs) {
+            while (jobs.size() != 2) {
+                jobs.wait();
+                System.out.println("jobs = " + jobs);
+            }
+        }
+        queueWorker.stop();
+        queueWorker.awaitTermination(250, TimeUnit.MILLISECONDS);
+
+        ArrayList<String> remainingJobsFoo = queueRemainingJobs("foo");
+        ArrayList<String> remainingJobsBar = queueRemainingJobs("bar");
+
+        System.out.println("remainingJobsFoo = " + remainingJobsFoo);
+        System.out.println("remainingJobsBar = " + remainingJobsBar);
+
+        assertThat(jobs, contains("1,2".split(",")));
+        assertThat(remainingJobsFoo, empty());
+        assertThat(remainingJobsBar, empty());
     }
 
     @Test(timeout = 2_000L)

@@ -160,14 +160,16 @@ class JobWorker<T> implements Runnable {
             Savepoint savepoint = connection.setSavepoint();
             try {
                 if (harvester.settings.deduplicateAbstraction != null) {
-                    ResultSet resultSet = timedDeleteDuplicate(job);
-                    if (resultSet != null) {
-                        while (resultSet.next()) {
-                            JobWithMetaData<T> skippedJob = new JobWithMetaData<>(resultSet, 1, harvester.settings.storageAbstraction);
-                            T actualJob = harvester.settings.deduplicateAbstraction
-                                    .mergeJob(job.getActualJob(), skippedJob.getActualJob());
-                            job.setActualJob(actualJob);
-                            log.info("Skipping job: {}", skippedJob);
+                    for (String consumerName : harvester.settings.deduplicateFromAllConsumers ? harvester.settings.consumerNames : Collections.singleton(job.getConsumer())) {
+                        ResultSet resultSet = timedDeleteDuplicate(job, consumerName);
+                        if (resultSet != null) {
+                            while (resultSet.next()) {
+                                JobWithMetaData<T> skippedJob = new JobWithMetaData<>(resultSet, 1, harvester.settings.storageAbstraction);
+                                T actualJob = harvester.settings.deduplicateAbstraction
+                                        .mergeJob(job.getActualJob(), skippedJob.getActualJob());
+                                job.setActualJob(actualJob);
+                                log.info("Skipping job: {}", skippedJob);
+                            }
                         }
                     }
                 }
@@ -176,7 +178,7 @@ class JobWorker<T> implements Runnable {
                 success = true;
                 sql(() -> connection.releaseSavepoint(savepoint), "Release savepoint");
             } catch (FatalQueueError ex) {
-                if(! ex.shouldThrottle())
+                if (!ex.shouldThrottle())
                     success = true;
                 log.info("Fatal error: {}", ex.getMessage());
                 log.debug("Fatal error: ", ex);
@@ -315,12 +317,13 @@ class JobWorker<T> implements Runnable {
     /**
      * Wrap a delete duplicate in a timer and holour deduplicateDisable
      *
-     * @param job job to delete duplicates of
+     * @param job      job to delete duplicates of
+     * @param consumer which consumer to deduplicate for
      * @return result set
      * @throws SQLException from database errors
      */
-    private ResultSet timedDeleteDuplicate(JobWithMetaData<T> job) throws SQLException {
-        PreparedStatement stmt = getDeleteDuplicateStmt(job);
+    private ResultSet timedDeleteDuplicate(JobWithMetaData<T> job, String consumer) throws SQLException {
+        PreparedStatement stmt = getDeleteDuplicateStmt(job, consumer);
         if (stmt == null) {
             return null;
         }
@@ -611,11 +614,12 @@ class JobWorker<T> implements Runnable {
     /**
      * Delete duplicate jobs
      *
-     * @param job job to match
+     * @param job      job to match
+     * @param consumer which consumer to deduplicate for
      * @return sql statement
      * @throws SQLException for database errors
      */
-    private PreparedStatement getDeleteDuplicateStmt(JobWithMetaData<T> job) throws SQLException {
+    private PreparedStatement getDeleteDuplicateStmt(JobWithMetaData<T> job, String consumer) throws SQLException {
         if (deleteDuplicateStmt == null) {
             if (harvester.getDeleteDuplicateSql() == null) {
                 return null;
@@ -624,8 +628,8 @@ class JobWorker<T> implements Runnable {
                 deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
             }
         }
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_1, job.getConsumer());
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_2, job.getConsumer());
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_1, consumer);
+        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_2, consumer);
         harvester.settings.deduplicateAbstraction
                 .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicatePositions.DUPLICATE_POS);
         harvester.settings.deduplicateAbstraction
