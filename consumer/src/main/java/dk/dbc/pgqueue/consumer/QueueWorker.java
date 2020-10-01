@@ -119,6 +119,7 @@ public interface QueueWorker {
         private MetricAbstraction metricsAbstraction;
         private DeduplicateAbstraction<T> deduplicateAbstraction;
         private boolean includePostponedInDeduplication;
+        private boolean deduplicateFromAllConsumers;
         private QueueHealth health;
 
         private Builder(QueueStorageAbstraction<T> storageAbstraction) {
@@ -194,7 +195,7 @@ public interface QueueWorker {
          * @return self
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction) {
-            return skipDuplicateJobs(deduplicateAbstraction, false);
+            return skipDuplicateJobs(deduplicateAbstraction, false, false);
         }
 
         /**
@@ -202,11 +203,13 @@ public interface QueueWorker {
          *
          * @param deduplicateAbstraction definition of what a duplicate job is
          * @param includePostponedInDeduplication whether to include postponed items when deduplicating
+         * @param deduplicateFromAllConsumers if deduplicate should happen on all queues or only the one that the primary job is from
          * @return self
          */
-        public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication) {
+        public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication, boolean deduplicateFromAllConsumers) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
             this.includePostponedInDeduplication = includePostponedInDeduplication;
+            this.deduplicateFromAllConsumers  = deduplicateFromAllConsumers;
             return this;
         }
 
@@ -507,6 +510,7 @@ public interface QueueWorker {
                                            storageAbstraction,
                                            deduplicateAbstraction,
                                            includePostponedInDeduplication,
+                                           deduplicateFromAllConsumers,
                                            or(maxTries, 3),
                                            or(emptyQueueSleep, 10_000L),
                                            or(maxQueryTime, 50L),
