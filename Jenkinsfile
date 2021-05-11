@@ -116,13 +116,13 @@ pipeline {
                 if ("${env.BRANCH_NAME}" == 'master') {
                     emailext(
                             recipientProviders: [developers(), culprits()],
-                            to: "os-team@dbc.dk",
+                            to: "de-team@dbc.dk",
                             subject: "[Jenkins] ${env.JOB_NAME} #${env.BUILD_NUMBER} failed",
                             mimeType: 'text/html; charset=UTF-8',
                             body: "<p>The master build failed. Log attached. </p><p><a href=\"${env.BUILD_URL}\">Build information</a>.</p>",
                             attachLog: true,
                     )
-                    slackSend(channel: 'search',
+                    slackSend(channel: 'data-engineering-team',
                             color: 'warning',
                             message: "${env.JOB_NAME} #${env.BUILD_NUMBER} failed and needs attention: ${env.BUILD_URL}",
                             tokenCredentialId: 'slack-global-integration-token')
