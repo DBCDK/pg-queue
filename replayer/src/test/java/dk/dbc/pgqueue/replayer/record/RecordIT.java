@@ -19,7 +19,7 @@
 package dk.dbc.pgqueue.replayer.record;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
-import dk.dbc.pgqueue.DatabaseMigrator;
+import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.pgqueue.PreparedQueueSupplier;
 import dk.dbc.pgqueue.QueueSupplier;
 import dk.dbc.pgqueue.replayer.GenericJobMapper;

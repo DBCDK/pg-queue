@@ -18,7 +18,7 @@
  */
 package dk.dbc.pgqueue.replayer;
 
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

@@ -18,8 +18,8 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.DeduplicateAbstraction;
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.DeduplicateAbstraction;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

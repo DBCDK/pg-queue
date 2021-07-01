@@ -18,6 +18,7 @@
  */
 package dk.dbc.pgqueue;
 
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;

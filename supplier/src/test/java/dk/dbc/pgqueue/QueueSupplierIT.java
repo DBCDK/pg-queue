@@ -18,6 +18,8 @@
  */
 package dk.dbc.pgqueue;
 
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;

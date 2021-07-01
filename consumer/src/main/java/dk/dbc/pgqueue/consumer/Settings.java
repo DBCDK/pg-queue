@@ -18,11 +18,11 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import dk.dbc.pgqueue.DeduplicateAbstraction;
+import dk.dbc.pgqueue.common.DeduplicateAbstraction;
 
 /**
  * This is a storage class for configuration, shared among harvester and

@@ -18,7 +18,7 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
