@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         maven "maven 3.5"
+        jdk 'jdk11'
     }
 
     environment {
