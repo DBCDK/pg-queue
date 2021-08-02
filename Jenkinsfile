@@ -82,17 +82,7 @@ pipeline {
         stage("upload") {
             steps {
                 script {
-                    def masterVersion = ''
-                    try {
-                        copyArtifacts(projectName: env.JOB_NAME.replaceFirst('/.*', '/master'),
-		                      filter: 'version.txt',
-                                      target: 'from-master-branch',
-				      selector: lastCompleted())
-                        masterVersion = readFile(file: 'from-master-branch/version.txt', encoding: 'UTF-8')
-                    } catch (e) {
-                        echo "Could not get master version"
-                    }
-                    if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == readMavenPom().version.toLowerCase() && env.BRANCH_NAME != masterVersion) {
+                    if (env.BRANCH_NAME == 'master') {
                         sh """
                             mvn -Dmaven.repo.local=\$WORKSPACE/.repo jar:jar deploy:deploy
                         """

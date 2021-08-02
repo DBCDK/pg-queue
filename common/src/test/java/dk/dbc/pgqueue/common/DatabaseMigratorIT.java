@@ -19,7 +19,6 @@
 package dk.dbc.pgqueue.common;
 
 import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -27,7 +26,6 @@ import java.sql.Statement;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
-import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.Container;
 import org.testcontainers.utility.MountableFile;
 

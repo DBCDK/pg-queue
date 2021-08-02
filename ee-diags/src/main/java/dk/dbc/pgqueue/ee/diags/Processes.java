@@ -1,4 +1,4 @@
-package dk.dbc.pgqueue.admin.process;
+package dk.dbc.pgqueue.ee.diags;
 
 import java.util.Collection;
 import java.util.Collections;

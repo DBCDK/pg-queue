@@ -16,23 +16,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dbc.pgqueue.admin.process;
+package dk.dbc.pgqueue.ee.diags;
 
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.ejb.EJB;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 
 /**
  *
  * @author DBC {@literal <dbc.dk>}
  */
-@Path("status/diags")
-public class QueueDiagDistribution {
+@Path("status/queue")
+public class QueueStatus {
 
     @EJB
     PgQueueAdminConfig config;
@@ -42,11 +47,18 @@ public class QueueDiagDistribution {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response get(@QueryParam("zone") @DefaultValue("CET") String timeZoneName) {
-        return bean.getDiagDistribution(timeZoneName,
-                                        config.getDataSource(),
-                                        config.getDiagPercentMatch(),
-                                        config.getDiagCollapseMaxRows());
+    public Response get(@Context UriInfo info,
+                        @QueryParam("ignore") @DefaultValue("") String ignore) {
+        Set<String> ignoreQueues = Arrays.stream(ignore.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+        return bean.getQueueStatus(config.getDataSource(),
+                                   config.getMaxCacheAge(),
+                                   config.getDiagPercentMatch(),
+                                   config.getDiagCollapseMaxRows(),
+                                   ignoreQueues,
+                                   info.getQueryParameters().containsKey("force"));
     }
 
 }

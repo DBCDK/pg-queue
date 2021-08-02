@@ -410,36 +410,6 @@ public interface QueueWorker {
         }
 
         /**
-         * Set where to register performance stats
-         * <p>
-         * use either
-         * {@link #metricRegistryCodahale(com.codahale.metrics.MetricRegistry)}
-         * or
-         * {@link #metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry)}.
-         *
-         * @param metricRegistry the registry
-         * @return self
-         */
-        @Deprecated
-        public Builder<T> metricRegistry(com.codahale.metrics.MetricRegistry metricRegistry) {
-            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
-            log.warn("Deprecated use: {}.metricsRegistry(...)", getClass().getCanonicalName());
-            return this;
-        }
-
-        /**
-         * Set where to register performance stats (codahale style metrics)
-         *
-         * @param metricRegistry the registry (or null)
-         * @return self
-         */
-        public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
-            if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale)");
-            return this;
-        }
-
-        /**
          * Set where to register performance stats (eclipse microprofile style metrics)
          *
          * @param metricRegistry the registry (or null)

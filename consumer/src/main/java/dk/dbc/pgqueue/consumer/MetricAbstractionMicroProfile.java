@@ -35,7 +35,7 @@ public class MetricAbstractionMicroProfile implements MetricAbstraction {
 
     @Override
     public Counter counter(Class clazz, String name) {
-        org.eclipse.microprofile.metrics.Counter counter = metricRegistry.counter(MetricRegistry.name(clazz, name));
+        org.eclipse.microprofile.metrics.Counter counter = metricRegistry.counter(MetricRegistry.name(clazz.getCanonicalName(), name));
         return () -> {
             counter.inc();
         };
@@ -43,7 +43,7 @@ public class MetricAbstractionMicroProfile implements MetricAbstraction {
 
     @Override
     public Timer timer(Class clazz, String name) {
-        org.eclipse.microprofile.metrics.Timer timer = metricRegistry.timer(MetricRegistry.name(clazz, name));
+        org.eclipse.microprofile.metrics.Timer timer = metricRegistry.timer(MetricRegistry.name(clazz.getCanonicalName(), name));
         return () -> {
             return new Timer.Context() {
                 org.eclipse.microprofile.metrics.Timer.Context context = timer.time();

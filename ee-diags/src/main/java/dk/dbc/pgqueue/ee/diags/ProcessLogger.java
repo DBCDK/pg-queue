@@ -1,4 +1,4 @@
-package dk.dbc.pgqueue.admin.process;
+package dk.dbc.pgqueue.ee.diags;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;

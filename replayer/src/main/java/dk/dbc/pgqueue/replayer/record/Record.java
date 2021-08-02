@@ -18,7 +18,6 @@
  */
 package dk.dbc.pgqueue.replayer.record;
 
-import com.codahale.metrics.MetricRegistry;
 import com.opencsv.CSVWriterBuilder;
 import com.opencsv.ICSVWriter;
 import dk.dbc.pgqueue.consumer.QueueWorker;
@@ -154,7 +153,6 @@ public class Record implements AutoCloseable {
                 .dataSource(dataSource)
                 .emptyQueueSleep(100)
                 .window(100)
-                .metricRegistryCodahale(new MetricRegistry())
                 .build(consumer);
     }
 

@@ -20,8 +20,8 @@ package dk.dbc.pgqueue.replayer.record;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
 import dk.dbc.pgqueue.common.DatabaseMigrator;
-import dk.dbc.pgqueue.PreparedQueueSupplier;
-import dk.dbc.pgqueue.QueueSupplier;
+import dk.dbc.pgqueue.supplier.PreparedQueueSupplier;
+import dk.dbc.pgqueue.supplier.QueueSupplier;
 import dk.dbc.pgqueue.replayer.GenericJobMapper;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
