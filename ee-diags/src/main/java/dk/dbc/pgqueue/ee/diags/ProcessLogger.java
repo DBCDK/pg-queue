@@ -64,10 +64,12 @@ class ProcessLogger {
 
     }
 
-    @Override
-    @SuppressWarnings("FinalizeDeclaration")
-    protected void finalize() throws Throwable {
-        super.finalize();
+    ch.qos.logback.classic.Logger getLog() {
+        return logger;
+    }
+
+    void stop() {
+        logger.detachAndStopAllAppenders();
         try {
             write.close();
         } catch (IOException ex) {
@@ -77,14 +79,6 @@ class ProcessLogger {
         if (!file.delete()) {
             log.warn("could not remove log file. strange ({})", file.getAbsolutePath());
         }
-    }
-
-    ch.qos.logback.classic.Logger getLog() {
-        return logger;
-    }
-
-    void stop() {
-        logger.detachAndStopAllAppenders();
     }
 
     InputStream getLogFile() {
@@ -102,5 +96,4 @@ class ProcessLogger {
         wsAppender.start();
         logger.addAppender(wsAppender);
     }
-
 }
