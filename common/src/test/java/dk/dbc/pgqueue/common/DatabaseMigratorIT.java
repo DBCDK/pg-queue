@@ -16,15 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dbc.pgqueue;
+package dk.dbc.pgqueue.common;
 
-import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
+import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import javax.sql.DataSource;
-import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.testcontainers.containers.Container;
+import org.testcontainers.utility.MountableFile;
 
 import static org.junit.Assert.*;
 
@@ -34,20 +37,28 @@ import static org.junit.Assert.*;
  */
 public class DatabaseMigratorIT {
 
-    private static PostgresITDataSource pg;
-    private static DataSource dataSource;
+    private static final String SQL_FILE = "queue-example.sql";
 
-    @Before
-    public void setUp() throws Exception {
-        pg = new PostgresITDataSource("pgqueue");
-        dataSource = pg.getDataSource();
+    @ClassRule
+    public static DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        pg.copyFileToContainer(MountableFile.forClasspathResource(SQL_FILE), "/tmp/");
+        String connectString = "postgres://" + pg.getUsername() + ":" + pg.getPassword() + "@localhost/" + pg.getDatabaseName();
+        Container.ExecResult result = pg.execInContainer(StandardCharsets.UTF_8, "psql", "--file=/tmp/" + SQL_FILE, connectString);
+        System.out.println(result.getStdout());
+        if (result.getExitCode() != 0) {
+            System.err.println(result.getStderr());
+            throw new IllegalStateException("Cannot load: " + SQL_FILE);
+        }
     }
 
     @Test
     public void testMigrate() throws Exception {
         System.out.println("migrate");
-        DatabaseMigrator.migrate(dataSource);
-        try (Connection connection = dataSource.getConnection() ;
+        DatabaseMigrator.migrate(pg.datasource());
+        try (Connection connection = pg.createConnection() ;
              Statement stmt = connection.createStatement() ;
              ResultSet resultSet = stmt.executeQuery("SELECT consumer, queued, dequeueAfter, tries FROM queue")) {
             if (!resultSet.next()) {

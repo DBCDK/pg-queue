@@ -16,21 +16,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dbc.pgqueue;
+package dk.dbc.pgqueue.supplier;
 
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author DBC {@literal <dbc.dk>}
  * @param <T> the job type
  */
-public class PreparedQueueSupplier<T> implements AutoCloseable {
+public class BatchQueueSupplier<T> implements AutoCloseable {
+
+    private static final Logger log = LoggerFactory.getLogger(BatchQueueSupplier.class);
 
     private final QueueStorageAbstraction<T> abstraction;
     private final Connection connection;
@@ -38,18 +43,27 @@ public class PreparedQueueSupplier<T> implements AutoCloseable {
     private final String insertLaterSql;
     private PreparedStatement insertNowStmt;
     private PreparedStatement insertLaterStmt;
+    private final int executeEvery;
+    private int toGoNow;   // 0 in these ha magic meaning: nothing has been queues
+    private int toGoLater; // since lase executeBatch(). ie. no need to executeBatch() upon close()
 
-    PreparedQueueSupplier(QueueStorageAbstraction<T> abstraction, Connection connection, String insertNowSql, String insertLaterSql) {
+    BatchQueueSupplier(QueueStorageAbstraction<T> abstraction, Connection connection, String insertNowSql, String insertLaterSql, int executeEvery) {
         this.abstraction = abstraction;
         this.connection = connection;
         this.insertNowSql = insertNowSql;
         this.insertLaterSql = insertLaterSql;
         this.insertNowStmt = null;
         this.insertLaterStmt = null;
+        this.executeEvery = executeEvery;
+        this.toGoNow = 0;
+        this.toGoLater = 0;
     }
 
     /**
      * enqueue a job
+     * <p>
+     * This might send the job to the database, or be postponed to later
+     * delivery by {@link BatchQueueSupplier#close()}
      *
      * @param queue name of queue
      * @param job   the job to queue
@@ -60,11 +74,20 @@ public class PreparedQueueSupplier<T> implements AutoCloseable {
         int pos = 1;
         stmt.setString(pos++, queue);
         abstraction.saveJob(job, stmt, pos);
-        stmt.executeUpdate();
+        stmt.addBatch();
+        if (toGoNow == 0)
+            toGoNow = executeEvery;
+        if (--toGoNow == 0) {
+            log.debug("Sending 'now' batch");
+            stmt.executeBatch();
+        }
     }
 
     /**
      * enqueue a job for delayed dequeuing
+     * <p>
+     * This might send the job to the database, or be postponed to later
+     * delivery by {@link BatchQueueSupplier#close()}
      *
      * @param queue     name of queue
      * @param job       the job to queue
@@ -77,7 +100,13 @@ public class PreparedQueueSupplier<T> implements AutoCloseable {
         stmt.setString(pos++, queue);
         stmt.setLong(pos++, postponed);
         abstraction.saveJob(job, stmt, pos);
-        stmt.executeUpdate();
+        stmt.addBatch();
+        if (toGoLater == 0)
+            toGoLater = executeEvery;
+        if (--toGoLater == 0) {
+            log.debug("Sending 'later' batch");
+            stmt.executeBatch();
+        }
     }
 
     private PreparedStatement getInsertNowStmt() throws SQLException {
@@ -94,14 +123,28 @@ public class PreparedQueueSupplier<T> implements AutoCloseable {
         return insertLaterStmt;
     }
 
+    /**
+     * Close statements and send (last) batches
+     *
+     * @throws SQLException The first encountered exception when trying to close
+     *                      finalize the inserts
+     */
     @Override
     public void close() throws SQLException {
         List<Optional<SQLException>> exceptions = new ArrayList<>(4);
 
         if (insertNowStmt != null) {
+            if (toGoNow != 0) {
+                log.debug("Sending 'now' batch");
+                exceptions.add(QueueSupplier.wrapSql("Execute enqueue now", () -> insertNowStmt.executeBatch()));
+            }
             exceptions.add(QueueSupplier.wrapSql("Close enqueue now statement", () -> insertNowStmt.close()));
         }
         if (insertLaterStmt != null) {
+            if (toGoLater != 0) {
+                log.debug("Sending 'later' batch");
+                exceptions.add(QueueSupplier.wrapSql("Execute enqueue later", () -> insertLaterStmt.executeBatch()));
+            }
             exceptions.add(QueueSupplier.wrapSql("Close enqueue later statement", () -> insertLaterStmt.close()));
         }
         Optional<SQLException> firstException = exceptions.stream()

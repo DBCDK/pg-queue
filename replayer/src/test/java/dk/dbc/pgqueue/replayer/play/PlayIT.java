@@ -19,7 +19,7 @@
 package dk.dbc.pgqueue.replayer.play;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
-import dk.dbc.pgqueue.DatabaseMigrator;
+import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.pgqueue.replayer.ExitException;
 import dk.dbc.pgqueue.replayer.GenericJobMapper;
 import java.io.InputStream;

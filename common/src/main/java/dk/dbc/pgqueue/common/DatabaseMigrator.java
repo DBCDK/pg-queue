@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dbc.pgqueue;
+package dk.dbc.pgqueue.common;
 
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;

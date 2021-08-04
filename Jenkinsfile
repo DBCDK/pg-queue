@@ -3,6 +3,7 @@ pipeline {
 
     tools {
         maven "maven 3.5"
+        jdk 'jdk11'
     }
 
     environment {
@@ -52,7 +53,7 @@ pipeline {
         stage("analysis") {
             steps {
                 sh """
-                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo pmd:pmd pmd:cpd findbugs:findbugs
+                    mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo pmd:pmd pmd:cpd spotbugs:spotbugs
                 """
 
                 script {
@@ -62,8 +63,8 @@ pipeline {
                     def cpd = scanForIssues tool: [$class: 'Cpd'], pattern: '**/target/cpd.xml'
                     publishIssues issues:[cpd]
 
-                    def findbugs = scanForIssues tool: [$class: 'FindBugs'], pattern: '**/target/findbugsXml.xml'
-                    publishIssues issues:[findbugs], unstableTotalAll:1
+                    def spotbugs = scanForIssues tool: [$class: 'SpotBugs'], pattern: '**/target/spotbugsXml.xml'
+                    publishIssues issues:[spotbugs], unstableTotalAll:1
                 }
             }
         }
@@ -82,17 +83,7 @@ pipeline {
         stage("upload") {
             steps {
                 script {
-                    def masterVersion = ''
-                    try {
-                        copyArtifacts(projectName: env.JOB_NAME.replaceFirst('/.*', '/master'),
-		                      filter: 'version.txt',
-                                      target: 'from-master-branch',
-				      selector: lastCompleted())
-                        masterVersion = readFile(file: 'from-master-branch/version.txt', encoding: 'UTF-8')
-                    } catch (e) {
-                        echo "Could not get master version"
-                    }
-                    if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME == readMavenPom().version.toLowerCase() && env.BRANCH_NAME != masterVersion) {
+                    if (env.BRANCH_NAME == 'master') {
                         sh """
                             mvn -Dmaven.repo.local=\$WORKSPACE/.repo jar:jar deploy:deploy
                         """

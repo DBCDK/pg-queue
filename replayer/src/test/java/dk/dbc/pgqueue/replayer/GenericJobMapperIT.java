@@ -19,9 +19,9 @@
 package dk.dbc.pgqueue.replayer;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
-import dk.dbc.pgqueue.DatabaseMigrator;
-import dk.dbc.pgqueue.PreparedQueueSupplier;
-import dk.dbc.pgqueue.QueueSupplier;
+import dk.dbc.pgqueue.common.DatabaseMigrator;
+import dk.dbc.pgqueue.supplier.PreparedQueueSupplier;
+import dk.dbc.pgqueue.supplier.QueueSupplier;
 import dk.dbc.pgqueue.consumer.JobMetaData;
 import dk.dbc.pgqueue.consumer.QueueWorker;
 import java.sql.Connection;

@@ -1,0 +1,339 @@
+[[1;34mINFO[m] Scanning for projects...
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1mReactor Build Order:[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] pg-queue                                                           [pom]
+[[1;34mINFO[m] pg-queue-common                                                    [jar]
+[[1;34mINFO[m] pg-queue-supplier                                                  [jar]
+[[1;34mINFO[m] pg-queue-consumer                                                  [jar]
+[[1;34mINFO[m] pg-queue-ee-diags                                                  [ejb]
+[[1;34mINFO[m] pg-queue-replayer                                                  [jar]
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--------------------------< [0;36mdk.dbc:pg-queue[0;1m >---------------------------[m
+[[1;34mINFO[m] [1mBuilding pg-queue 1.5-SNAPSHOT                                     [1/6][m
+[[1;34mINFO[m] [1m--------------------------------[ pom ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-dependency-plugin:2.8:tree[m [1m(default-cli)[m @ [36mpg-queue[0;1m ---[m
+[[1;34mINFO[m] dk.dbc:pg-queue:pom:1.5-SNAPSHOT
+[[1;34mINFO[m] +- org.slf4j:slf4j-api:jar:1.7.30:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-classic:jar:1.2.3:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-core:jar:1.2.3:provided
+[[1;34mINFO[m] +- junit:junit:jar:4.13.1:test
+[[1;34mINFO[m] |  \- org.hamcrest:hamcrest-core:jar:1.3:test
+[[1;34mINFO[m] +- org.hamcrest:hamcrest-all:jar:1.3:test
+[[1;34mINFO[m] \- org.mockito:mockito-core:jar:3.5.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy:jar:1.10.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy-agent:jar:1.10.15:test
+[[1;34mINFO[m]    \- org.objenesis:objenesis:jar:3.1:test
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-----------------------< [0;36mdk.dbc:pg-queue-common[0;1m >-----------------------[m
+[[1;34mINFO[m] [1mBuilding pg-queue-common 1.5-SNAPSHOT                              [2/6][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-dependency-plugin:2.8:tree[m [1m(default-cli)[m @ [36mpg-queue-common[0;1m ---[m
+[[1;34mINFO[m] dk.dbc:pg-queue-common:jar:1.5-SNAPSHOT
+[[1;34mINFO[m] +- org.flywaydb:flyway-core:jar:7.0.4:compile
+[[1;34mINFO[m] +- org.postgresql:postgresql:jar:42.2.18:provided
+[[1;34mINFO[m] |  \- org.checkerframework:checker-qual:jar:3.5.0:provided
+[[1;34mINFO[m] +- dk.dbc.commoms.testutils:dbc-commons-testutil-postgres-connection:jar:1.3-SNAPSHOT:test
+[[1;34mINFO[m] |  +- com.google.code.findbugs:annotations:jar:3.0.1:test
+[[1;34mINFO[m] |  |  +- net.jcip:jcip-annotations:jar:1.0:test
+[[1;34mINFO[m] |  |  \- com.google.code.findbugs:jsr305:jar:3.0.1:test
+[[1;34mINFO[m] |  \- org.apache.commons:commons-dbcp2:jar:2.1.1:test
+[[1;34mINFO[m] |     +- org.apache.commons:commons-pool2:jar:2.4.2:test
+[[1;34mINFO[m] |     \- commons-logging:commons-logging:jar:1.2:test
+[[1;34mINFO[m] +- org.slf4j:slf4j-api:jar:1.7.30:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-classic:jar:1.2.3:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-core:jar:1.2.3:provided
+[[1;34mINFO[m] +- junit:junit:jar:4.13.1:test
+[[1;34mINFO[m] |  \- org.hamcrest:hamcrest-core:jar:1.3:test
+[[1;34mINFO[m] +- org.hamcrest:hamcrest-all:jar:1.3:test
+[[1;34mINFO[m] \- org.mockito:mockito-core:jar:3.5.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy:jar:1.10.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy-agent:jar:1.10.15:test
+[[1;34mINFO[m]    \- org.objenesis:objenesis:jar:3.1:test
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m----------------------< [0;36mdk.dbc:pg-queue-supplier[0;1m >----------------------[m
+[[1;34mINFO[m] [1mBuilding pg-queue-supplier 1.5-SNAPSHOT                            [3/6][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-dependency-plugin:2.8:tree[m [1m(default-cli)[m @ [36mpg-queue-supplier[0;1m ---[m
+[[1;34mINFO[m] dk.dbc:pg-queue-supplier:jar:1.5-SNAPSHOT
+[[1;34mINFO[m] +- dk.dbc:pg-queue-common:jar:1.5-SNAPSHOT:compile
+[[1;34mINFO[m] |  \- org.flywaydb:flyway-core:jar:7.0.4:compile
+[[1;34mINFO[m] +- org.postgresql:postgresql:jar:42.2.18:provided
+[[1;34mINFO[m] |  \- org.checkerframework:checker-qual:jar:3.5.0:provided
+[[1;34mINFO[m] +- dk.dbc.commoms.testutils:dbc-commons-testutil-postgres-connection:jar:1.3-SNAPSHOT:test
+[[1;34mINFO[m] |  +- com.google.code.findbugs:annotations:jar:3.0.1:test
+[[1;34mINFO[m] |  |  +- net.jcip:jcip-annotations:jar:1.0:test
+[[1;34mINFO[m] |  |  \- com.google.code.findbugs:jsr305:jar:3.0.1:test
+[[1;34mINFO[m] |  \- org.apache.commons:commons-dbcp2:jar:2.1.1:test
+[[1;34mINFO[m] |     +- org.apache.commons:commons-pool2:jar:2.4.2:test
+[[1;34mINFO[m] |     \- commons-logging:commons-logging:jar:1.2:test
+[[1;34mINFO[m] +- org.slf4j:slf4j-api:jar:1.7.30:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-classic:jar:1.2.3:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-core:jar:1.2.3:provided
+[[1;34mINFO[m] +- junit:junit:jar:4.13.1:test
+[[1;34mINFO[m] |  \- org.hamcrest:hamcrest-core:jar:1.3:test
+[[1;34mINFO[m] +- org.hamcrest:hamcrest-all:jar:1.3:test
+[[1;34mINFO[m] \- org.mockito:mockito-core:jar:3.5.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy:jar:1.10.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy-agent:jar:1.10.15:test
+[[1;34mINFO[m]    \- org.objenesis:objenesis:jar:3.1:test
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m----------------------< [0;36mdk.dbc:pg-queue-consumer[0;1m >----------------------[m
+[[1;34mINFO[m] [1mBuilding pg-queue-consumer 1.5-SNAPSHOT                            [4/6][m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-dependency-plugin:2.8:tree[m [1m(default-cli)[m @ [36mpg-queue-consumer[0;1m ---[m
+[[1;34mINFO[m] dk.dbc:pg-queue-consumer:jar:1.5-SNAPSHOT
+[[1;34mINFO[m] +- dk.dbc:pg-queue-common:jar:1.5-SNAPSHOT:compile
+[[1;34mINFO[m] |  \- org.flywaydb:flyway-core:jar:7.0.4:compile
+[[1;34mINFO[m] +- org.postgresql:postgresql:jar:42.2.18:provided
+[[1;34mINFO[m] |  \- org.checkerframework:checker-qual:jar:3.5.0:provided
+[[1;34mINFO[m] +- com.codahale.metrics:metrics-core:jar:3.0.2:provided
+[[1;34mINFO[m] +- org.eclipse.microprofile:microprofile:pom:3.3:provided
+[[1;34mINFO[m] |  +- javax.enterprise:cdi-api:jar:2.0:provided
+[[1;34mINFO[m] |  |  +- javax.el:javax.el-api:jar:3.0.0:provided
+[[1;34mINFO[m] |  |  +- javax.interceptor:javax.interceptor-api:jar:1.2:provided
+[[1;34mINFO[m] |  |  \- javax.inject:javax.inject:jar:1:provided
+[[1;34mINFO[m] |  +- javax.ws.rs:javax.ws.rs-api:jar:2.1:provided
+[[1;34mINFO[m] |  +- javax.json.bind:javax.json.bind-api:jar:1.0:provided
+[[1;34mINFO[m] |  +- javax.json:javax.json-api:jar:1.1:provided
+[[1;34mINFO[m] |  +- javax.annotation:javax.annotation-api:jar:1.3:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.config:microprofile-config-api:jar:1.4:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.fault-tolerance:microprofile-fault-tolerance-api:jar:2.1:provided
+[[1;34mINFO[m] |  |  \- org.osgi:org.osgi.annotation.versioning:jar:1.0.0:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.health:microprofile-health-api:jar:2.2:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.metrics:microprofile-metrics-api:jar:2.3:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.jwt:microprofile-jwt-auth-api:jar:1.1:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.openapi:microprofile-openapi-api:jar:1.1:provided
+[[1;34mINFO[m] |  +- org.eclipse.microprofile.rest.client:microprofile-rest-client-api:jar:1.4.0:provided
+[[1;34mINFO[m] |  \- org.eclipse.microprofile.opentracing:microprofile-opentracing-api:jar:1.3:provided
+[[1;34mINFO[m] +- dk.dbc.commoms.testutils:dbc-commons-testutil-postgres-connection:jar:1.3-SNAPSHOT:test
+[[1;34mINFO[m] |  \- org.apache.commons:commons-dbcp2:jar:2.1.1:test
+[[1;34mINFO[m] |     +- org.apache.commons:commons-pool2:jar:2.4.2:test
+[[1;34mINFO[m] |     \- commons-logging:commons-logging:jar:1.2:test
+[[1;34mINFO[m] +- com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:jar:2.10.2:test
+[[1;34mINFO[m] |  +- org.yaml:snakeyaml:jar:1.25:test
+[[1;34mINFO[m] |  \- com.fasterxml.jackson.core:jackson-core:jar:2.10.2:provided
+[[1;34mINFO[m] +- com.fasterxml.jackson.core:jackson-databind:jar:2.10.2:test
+[[1;34mINFO[m] |  \- com.fasterxml.jackson.core:jackson-annotations:jar:2.10.2:provided
+[[1;34mINFO[m] +- com.google.code.findbugs:annotations:jar:3.0.1:compile
+[[1;34mINFO[m] |  +- net.jcip:jcip-annotations:jar:1.0:compile
+[[1;34mINFO[m] |  \- com.google.code.findbugs:jsr305:jar:3.0.1:compile
+[[1;34mINFO[m] +- org.slf4j:slf4j-api:jar:1.7.30:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-classic:jar:1.2.3:provided
+[[1;34mINFO[m] +- ch.qos.logback:logback-core:jar:1.2.3:provided
+[[1;34mINFO[m] +- junit:junit:jar:4.13.1:test
+[[1;34mINFO[m] |  \- org.hamcrest:hamcrest-core:jar:1.3:test
+[[1;34mINFO[m] +- org.hamcrest:hamcrest-all:jar:1.3:test
+[[1;34mINFO[m] \- org.mockito:mockito-core:jar:3.5.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy:jar:1.10.15:test
+[[1;34mINFO[m]    +- net.bytebuddy:byte-buddy-agent:jar:1.10.15:test
+[[1;34mINFO[m]    \- org.objenesis:objenesis:jar:3.1:test
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m----------------------< [0;36mdk.dbc:pg-queue-ee-diags[0;1m >----------------------[m
+[[1;34mINFO[m] [1mBuilding pg-queue-ee-diags 1.5-SNAPSHOT                            [5/6][m
+[[1;34mINFO[m] [1m--------------------------------[ ejb ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-dependency-plugin:2.6:tree[m [1m(default-cli)[m @ [36mpg-queue-ee-diags[0;1m ---[m
+[[1;33mWARNING[m] Error injecting: org.apache.maven.shared.dependency.graph.internal.Maven3DependencyGraphBuilder
+[1;31mjava.lang.NoClassDefFoundError[m: [1;31morg/sonatype/aether/version/VersionConstraint[m
+    [1mat[m java.lang.Class.getDeclaredMethods0 ([1mNative Method[m)
+    [1mat[m java.lang.Class.privateGetDeclaredMethods ([1mClass.java:2701[m)
+    [1mat[m java.lang.Class.getDeclaredMethods ([1mClass.java:1975[m)
+    [1mat[m com.google.inject.spi.InjectionPoint.getDeclaredMethods ([1mInjectionPoint.java:766[m)
+    [1mat[m com.google.inject.spi.InjectionPoint.getInjectionPoints ([1mInjectionPoint.java:683[m)
+    [1mat[m com.google.inject.spi.InjectionPoint.forInstanceMethodsAndFields ([1mInjectionPoint.java:378[m)
+    [1mat[m com.google.inject.internal.ConstructorBindingImpl.getInternalDependencies ([1mConstructorBindingImpl.java:182[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getInternalDependencies ([1mInjectorImpl.java:661[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.cleanup ([1mInjectorImpl.java:617[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.initializeJitBinding ([1mInjectorImpl.java:603[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.createJustInTimeBinding ([1mInjectorImpl.java:932[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.createJustInTimeBindingRecursive ([1mInjectorImpl.java:852[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getJustInTimeBinding ([1mInjectorImpl.java:291[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getBindingOrThrow ([1mInjectorImpl.java:222[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getProviderOrThrow ([1mInjectorImpl.java:1040[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getProvider ([1mInjectorImpl.java:1071[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getProvider ([1mInjectorImpl.java:1034[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getInstance ([1mInjectorImpl.java:1086[m)
+    [1mat[m org.eclipse.sisu.space.AbstractDeferredClass.get ([1mAbstractDeferredClass.java:48[m)
+    [1mat[m com.google.inject.internal.ProviderInternalFactory.provision ([1mProviderInternalFactory.java:85[m)
+    [1mat[m com.google.inject.internal.InternalFactoryToInitializableAdapter.provision ([1mInternalFactoryToInitializableAdapter.java:57[m)
+    [1mat[m com.google.inject.internal.ProviderInternalFactory$1.call ([1mProviderInternalFactory.java:66[m)
+    [1mat[m com.google.inject.internal.ProvisionListenerStackCallback$Provision.provision ([1mProvisionListenerStackCallback.java:112[m)
+    [1mat[m org.eclipse.sisu.bean.BeanScheduler$CycleActivator.onProvision ([1mBeanScheduler.java:230[m)
+    [1mat[m com.google.inject.internal.ProvisionListenerStackCallback$Provision.provision ([1mProvisionListenerStackCallback.java:120[m)
+    [1mat[m com.google.inject.internal.ProvisionListenerStackCallback.provision ([1mProvisionListenerStackCallback.java:66[m)
+    [1mat[m com.google.inject.internal.ProviderInternalFactory.circularGet ([1mProviderInternalFactory.java:61[m)
+    [1mat[m com.google.inject.internal.InternalFactoryToInitializableAdapter.get ([1mInternalFactoryToInitializableAdapter.java:47[m)
+    [1mat[m com.google.inject.internal.ProviderToInternalFactoryAdapter.get ([1mProviderToInternalFactoryAdapter.java:40[m)
+    [1mat[m com.google.inject.internal.SingletonScope$1.get ([1mSingletonScope.java:168[m)
+    [1mat[m com.google.inject.internal.InternalFactoryToProviderAdapter.get ([1mInternalFactoryToProviderAdapter.java:39[m)
+    [1mat[m com.google.inject.internal.InjectorImpl$1.get ([1mInjectorImpl.java:1050[m)
+    [1mat[m org.eclipse.sisu.inject.LazyBeanEntry.getValue ([1mLazyBeanEntry.java:81[m)
+    [1mat[m org.eclipse.sisu.plexus.LazyPlexusBean.getValue ([1mLazyPlexusBean.java:51[m)
+    [1mat[m org.codehaus.plexus.DefaultPlexusContainer.lookup ([1mDefaultPlexusContainer.java:263[m)
+    [1mat[m org.codehaus.plexus.DefaultPlexusContainer.lookup ([1mDefaultPlexusContainer.java:243[m)
+    [1mat[m org.apache.maven.shared.dependency.graph.internal.DefaultDependencyGraphBuilder.buildDependencyGraph ([1mDefaultDependencyGraphBuilder.java:60[m)
+    [1mat[m org.apache.maven.plugin.dependency.TreeMojo.execute ([1mTreeMojo.java:202[m)
+    [1mat[m org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo ([1mDefaultBuildPluginManager.java:137[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:210[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:156[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:148[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject ([1mLifecycleModuleBuilder.java:117[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject ([1mLifecycleModuleBuilder.java:81[m)
+    [1mat[m org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build ([1mSingleThreadedBuilder.java:56[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleStarter.execute ([1mLifecycleStarter.java:128[m)
+    [1mat[m org.apache.maven.DefaultMaven.doExecute ([1mDefaultMaven.java:305[m)
+    [1mat[m org.apache.maven.DefaultMaven.doExecute ([1mDefaultMaven.java:192[m)
+    [1mat[m org.apache.maven.DefaultMaven.execute ([1mDefaultMaven.java:105[m)
+    [1mat[m org.apache.maven.cli.MavenCli.execute ([1mMavenCli.java:956[m)
+    [1mat[m org.apache.maven.cli.MavenCli.doMain ([1mMavenCli.java:288[m)
+    [1mat[m org.apache.maven.cli.MavenCli.main ([1mMavenCli.java:192[m)
+    [1mat[m sun.reflect.NativeMethodAccessorImpl.invoke0 ([1mNative Method[m)
+    [1mat[m sun.reflect.NativeMethodAccessorImpl.invoke ([1mNativeMethodAccessorImpl.java:62[m)
+    [1mat[m sun.reflect.DelegatingMethodAccessorImpl.invoke ([1mDelegatingMethodAccessorImpl.java:43[m)
+    [1mat[m java.lang.reflect.Method.invoke ([1mMethod.java:498[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced ([1mLauncher.java:282[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.launch ([1mLauncher.java:225[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode ([1mLauncher.java:406[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.main ([1mLauncher.java:347[m)
+[1mCaused by[m: java.lang.ClassNotFoundException: [1;31morg.sonatype.aether.version.VersionConstraint[m
+    [1mat[m org.codehaus.plexus.classworlds.strategy.SelfFirstStrategy.loadClass ([1mSelfFirstStrategy.java:50[m)
+    [1mat[m org.codehaus.plexus.classworlds.realm.ClassRealm.unsynchronizedLoadClass ([1mClassRealm.java:271[m)
+    [1mat[m org.codehaus.plexus.classworlds.realm.ClassRealm.loadClass ([1mClassRealm.java:247[m)
+    [1mat[m org.codehaus.plexus.classworlds.realm.ClassRealm.loadClass ([1mClassRealm.java:239[m)
+    [1mat[m java.lang.Class.getDeclaredMethods0 ([1mNative Method[m)
+    [1mat[m java.lang.Class.privateGetDeclaredMethods ([1mClass.java:2701[m)
+    [1mat[m java.lang.Class.getDeclaredMethods ([1mClass.java:1975[m)
+    [1mat[m com.google.inject.spi.InjectionPoint.getDeclaredMethods ([1mInjectionPoint.java:766[m)
+    [1mat[m com.google.inject.spi.InjectionPoint.getInjectionPoints ([1mInjectionPoint.java:683[m)
+    [1mat[m com.google.inject.spi.InjectionPoint.forInstanceMethodsAndFields ([1mInjectionPoint.java:378[m)
+    [1mat[m com.google.inject.internal.ConstructorBindingImpl.getInternalDependencies ([1mConstructorBindingImpl.java:182[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getInternalDependencies ([1mInjectorImpl.java:661[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.cleanup ([1mInjectorImpl.java:617[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.initializeJitBinding ([1mInjectorImpl.java:603[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.createJustInTimeBinding ([1mInjectorImpl.java:932[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.createJustInTimeBindingRecursive ([1mInjectorImpl.java:852[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getJustInTimeBinding ([1mInjectorImpl.java:291[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getBindingOrThrow ([1mInjectorImpl.java:222[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getProviderOrThrow ([1mInjectorImpl.java:1040[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getProvider ([1mInjectorImpl.java:1071[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getProvider ([1mInjectorImpl.java:1034[m)
+    [1mat[m com.google.inject.internal.InjectorImpl.getInstance ([1mInjectorImpl.java:1086[m)
+    [1mat[m org.eclipse.sisu.space.AbstractDeferredClass.get ([1mAbstractDeferredClass.java:48[m)
+    [1mat[m com.google.inject.internal.ProviderInternalFactory.provision ([1mProviderInternalFactory.java:85[m)
+    [1mat[m com.google.inject.internal.InternalFactoryToInitializableAdapter.provision ([1mInternalFactoryToInitializableAdapter.java:57[m)
+    [1mat[m com.google.inject.internal.ProviderInternalFactory$1.call ([1mProviderInternalFactory.java:66[m)
+    [1mat[m com.google.inject.internal.ProvisionListenerStackCallback$Provision.provision ([1mProvisionListenerStackCallback.java:112[m)
+    [1mat[m org.eclipse.sisu.bean.BeanScheduler$CycleActivator.onProvision ([1mBeanScheduler.java:230[m)
+    [1mat[m com.google.inject.internal.ProvisionListenerStackCallback$Provision.provision ([1mProvisionListenerStackCallback.java:120[m)
+    [1mat[m com.google.inject.internal.ProvisionListenerStackCallback.provision ([1mProvisionListenerStackCallback.java:66[m)
+    [1mat[m com.google.inject.internal.ProviderInternalFactory.circularGet ([1mProviderInternalFactory.java:61[m)
+    [1mat[m com.google.inject.internal.InternalFactoryToInitializableAdapter.get ([1mInternalFactoryToInitializableAdapter.java:47[m)
+    [1mat[m com.google.inject.internal.ProviderToInternalFactoryAdapter.get ([1mProviderToInternalFactoryAdapter.java:40[m)
+    [1mat[m com.google.inject.internal.SingletonScope$1.get ([1mSingletonScope.java:168[m)
+    [1mat[m com.google.inject.internal.InternalFactoryToProviderAdapter.get ([1mInternalFactoryToProviderAdapter.java:39[m)
+    [1mat[m com.google.inject.internal.InjectorImpl$1.get ([1mInjectorImpl.java:1050[m)
+    [1mat[m org.eclipse.sisu.inject.LazyBeanEntry.getValue ([1mLazyBeanEntry.java:81[m)
+    [1mat[m org.eclipse.sisu.plexus.LazyPlexusBean.getValue ([1mLazyPlexusBean.java:51[m)
+    [1mat[m org.codehaus.plexus.DefaultPlexusContainer.lookup ([1mDefaultPlexusContainer.java:263[m)
+    [1mat[m org.codehaus.plexus.DefaultPlexusContainer.lookup ([1mDefaultPlexusContainer.java:243[m)
+    [1mat[m org.apache.maven.shared.dependency.graph.internal.DefaultDependencyGraphBuilder.buildDependencyGraph ([1mDefaultDependencyGraphBuilder.java:60[m)
+    [1mat[m org.apache.maven.plugin.dependency.TreeMojo.execute ([1mTreeMojo.java:202[m)
+    [1mat[m org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo ([1mDefaultBuildPluginManager.java:137[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:210[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:156[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:148[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject ([1mLifecycleModuleBuilder.java:117[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject ([1mLifecycleModuleBuilder.java:81[m)
+    [1mat[m org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build ([1mSingleThreadedBuilder.java:56[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleStarter.execute ([1mLifecycleStarter.java:128[m)
+    [1mat[m org.apache.maven.DefaultMaven.doExecute ([1mDefaultMaven.java:305[m)
+    [1mat[m org.apache.maven.DefaultMaven.doExecute ([1mDefaultMaven.java:192[m)
+    [1mat[m org.apache.maven.DefaultMaven.execute ([1mDefaultMaven.java:105[m)
+    [1mat[m org.apache.maven.cli.MavenCli.execute ([1mMavenCli.java:956[m)
+    [1mat[m org.apache.maven.cli.MavenCli.doMain ([1mMavenCli.java:288[m)
+    [1mat[m org.apache.maven.cli.MavenCli.main ([1mMavenCli.java:192[m)
+    [1mat[m sun.reflect.NativeMethodAccessorImpl.invoke0 ([1mNative Method[m)
+    [1mat[m sun.reflect.NativeMethodAccessorImpl.invoke ([1mNativeMethodAccessorImpl.java:62[m)
+    [1mat[m sun.reflect.DelegatingMethodAccessorImpl.invoke ([1mDelegatingMethodAccessorImpl.java:43[m)
+    [1mat[m java.lang.reflect.Method.invoke ([1mMethod.java:498[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced ([1mLauncher.java:282[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.launch ([1mLauncher.java:225[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode ([1mLauncher.java:406[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.main ([1mLauncher.java:347[m)
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1mReactor Summary for pg-queue 1.5-SNAPSHOT:[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] pg-queue ........................................... [1;32mSUCCESS[m [  0.868 s]
+[[1;34mINFO[m] pg-queue-common .................................... [1;32mSUCCESS[m [  0.132 s]
+[[1;34mINFO[m] pg-queue-supplier .................................. [1;32mSUCCESS[m [  0.026 s]
+[[1;34mINFO[m] pg-queue-consumer .................................. [1;32mSUCCESS[m [  0.119 s]
+[[1;34mINFO[m] pg-queue-ee-diags .................................. [1;31mFAILURE[m [  0.333 s]
+[[1;34mINFO[m] pg-queue-replayer .................................. [1;33mSKIPPED[m
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1;31mBUILD FAILURE[m
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] Total time:  1.801 s
+[[1;34mINFO[m] Finished at: 2020-11-04T06:55:13+01:00
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;31mERROR[m] Failed to execute goal [32morg.apache.maven.plugins:maven-dependency-plugin:2.6:tree[m [1m(default-cli)[m on project [36mpg-queue-ee-diags[m: [1;31mExecution default-cli of goal org.apache.maven.plugins:maven-dependency-plugin:2.6:tree failed: A required class was missing while executing org.apache.maven.plugins:maven-dependency-plugin:2.6:tree: org/sonatype/aether/version/VersionConstraint[m
+[[1;31mERROR[m] [1;31m-----------------------------------------------------[m
+[[1;31mERROR[m] [1;31mrealm =    plugin>org.apache.maven.plugins:maven-dependency-plugin:2.6[m
+[[1;31mERROR[m] [1;31mstrategy = org.codehaus.plexus.classworlds.strategy.SelfFirstStrategy[m
+[[1;31mERROR[m] [1;31murls[0] = file:/home/bogeskov/.m2/repository/org/apache/maven/plugins/maven-dependency-plugin/2.6/maven-dependency-plugin-2.6.jar[m
+[[1;31mERROR[m] [1;31murls[1] = file:/home/bogeskov/.m2/repository/commons-cli/commons-cli/1.0/commons-cli-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[2] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-interactivity-api/1.0-alpha-4/plexus-interactivity-api-1.0-alpha-4.jar[m
+[[1;31mERROR[m] [1;31murls[3] = file:/home/bogeskov/.m2/repository/org/apache/maven/reporting/maven-reporting-api/3.0/maven-reporting-api-3.0.jar[m
+[[1;31mERROR[m] [1;31murls[4] = file:/home/bogeskov/.m2/repository/org/apache/maven/reporting/maven-reporting-impl/2.0.5/maven-reporting-impl-2.0.5.jar[m
+[[1;31mERROR[m] [1;31murls[5] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-core/1.0/doxia-core-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[6] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/maven-doxia-tools/1.0.2/maven-doxia-tools-1.0.2.jar[m
+[[1;31mERROR[m] [1;31murls[7] = file:/home/bogeskov/.m2/repository/commons-io/commons-io/1.4/commons-io-1.4.jar[m
+[[1;31mERROR[m] [1;31murls[8] = file:/home/bogeskov/.m2/repository/commons-validator/commons-validator/1.2.0/commons-validator-1.2.0.jar[m
+[[1;31mERROR[m] [1;31murls[9] = file:/home/bogeskov/.m2/repository/commons-beanutils/commons-beanutils/1.7.0/commons-beanutils-1.7.0.jar[m
+[[1;31mERROR[m] [1;31murls[10] = file:/home/bogeskov/.m2/repository/commons-digester/commons-digester/1.6/commons-digester-1.6.jar[m
+[[1;31mERROR[m] [1;31murls[11] = file:/home/bogeskov/.m2/repository/commons-logging/commons-logging/1.0.4/commons-logging-1.0.4.jar[m
+[[1;31mERROR[m] [1;31murls[12] = file:/home/bogeskov/.m2/repository/oro/oro/2.0.8/oro-2.0.8.jar[m
+[[1;31mERROR[m] [1;31murls[13] = file:/home/bogeskov/.m2/repository/xml-apis/xml-apis/1.0.b2/xml-apis-1.0.b2.jar[m
+[[1;31mERROR[m] [1;31murls[14] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-sink-api/1.0/doxia-sink-api-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[15] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-site-renderer/1.0/doxia-site-renderer-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[16] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-i18n/1.0-beta-7/plexus-i18n-1.0-beta-7.jar[m
+[[1;31mERROR[m] [1;31murls[17] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-velocity/1.1.7/plexus-velocity-1.1.7.jar[m
+[[1;31mERROR[m] [1;31murls[18] = file:/home/bogeskov/.m2/repository/org/apache/velocity/velocity/1.5/velocity-1.5.jar[m
+[[1;31mERROR[m] [1;31murls[19] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-decoration-model/1.0/doxia-decoration-model-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[20] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-module-apt/1.0/doxia-module-apt-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[21] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-module-fml/1.0/doxia-module-fml-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[22] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-module-xdoc/1.0/doxia-module-xdoc-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[23] = file:/home/bogeskov/.m2/repository/org/apache/maven/doxia/doxia-module-xhtml/1.0/doxia-module-xhtml-1.0.jar[m
+[[1;31mERROR[m] [1;31murls[24] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-archiver/2.2/plexus-archiver-2.2.jar[m
+[[1;31mERROR[m] [1;31murls[25] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-utils/3.0.9/plexus-utils-3.0.9.jar[m
+[[1;31mERROR[m] [1;31murls[26] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/file-management/1.2.1/file-management-1.2.1.jar[m
+[[1;31mERROR[m] [1;31murls[27] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/maven-shared-io/1.1/maven-shared-io-1.1.jar[m
+[[1;31mERROR[m] [1;31murls[28] = file:/home/bogeskov/.m2/repository/junit/junit/3.8.1/junit-3.8.1.jar[m
+[[1;31mERROR[m] [1;31murls[29] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-io/2.0.6/plexus-io-2.0.6.jar[m
+[[1;31mERROR[m] [1;31murls[30] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/maven-dependency-analyzer/1.3/maven-dependency-analyzer-1.3.jar[m
+[[1;31mERROR[m] [1;31murls[31] = file:/home/bogeskov/.m2/repository/asm/asm/3.3.1/asm-3.3.1.jar[m
+[[1;31mERROR[m] [1;31murls[32] = file:/home/bogeskov/.m2/repository/org/codehaus/plexus/plexus-component-annotations/1.5.5/plexus-component-annotations-1.5.5.jar[m
+[[1;31mERROR[m] [1;31murls[33] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/maven-dependency-tree/2.0/maven-dependency-tree-2.0.jar[m
+[[1;31mERROR[m] [1;31murls[34] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/maven-common-artifact-filters/1.4/maven-common-artifact-filters-1.4.jar[m
+[[1;31mERROR[m] [1;31murls[35] = file:/home/bogeskov/.m2/repository/org/apache/maven/shared/maven-invoker/2.0.11/maven-invoker-2.0.11.jar[m
+[[1;31mERROR[m] [1;31murls[36] = file:/home/bogeskov/.m2/repository/commons-lang/commons-lang/2.6/commons-lang-2.6.jar[m
+[[1;31mERROR[m] [1;31murls[37] = file:/home/bogeskov/.m2/repository/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar[m
+[[1;31mERROR[m] [1;31mNumber of foreign imports: 1[m
+[[1;31mERROR[m] [1;31mimport: Entry[import  from realm ClassRealm[maven.api, parent: null]][m
+[[1;31mERROR[m] [1;31m[m
+[[1;31mERROR[m] [1;31m-----------------------------------------------------[m
+[[1;31mERROR[m] [1;31m[m: org.sonatype.aether.version.VersionConstraint
+[[1;31mERROR[m] -> [1m[Help 1][m
+[[1;31mERROR[m] 
+[[1;31mERROR[m] To see the full stack trace of the errors, re-run Maven with the [1m-e[m switch.
+[[1;31mERROR[m] Re-run Maven using the [1m-X[m switch to enable full debug logging.
+[[1;31mERROR[m] 
+[[1;31mERROR[m] For more information about the errors and possible solutions, please read the following articles:
+[[1;31mERROR[m] [1m[Help 1][m http://cwiki.apache.org/confluence/display/MAVEN/AetherClassNotFound
+[[1;31mERROR[m] 
+[[1;31mERROR[m] After correcting the problems, you can resume the build with the command
+[[1;31mERROR[m]   [1mmvn <goals> -rf :pg-queue-ee-diags[m

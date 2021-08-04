@@ -16,9 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dbc.pgqueue;
+package dk.dbc.pgqueue.supplier;
 
-import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
+import dk.dbc.pgqueue.supplier.QueueSupplier;
+import dk.dbc.pgqueue.supplier.PreparedQueueSupplier;
+import dk.dbc.pgqueue.supplier.BatchQueueSupplier;
+import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.DatabaseMigrator;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,7 +34,12 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import javax.sql.DataSource;
 import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.Container;
+import org.testcontainers.utility.MountableFile;
 
 import static org.junit.Assert.*;
 
@@ -37,23 +49,36 @@ import static org.junit.Assert.*;
  */
 public class QueueSupplierIT {
 
-    public QueueSupplierIT() {
+    private static final String SQL_FILE = "queue-example.sql";
+
+    @ClassRule
+    public static DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+
+    @BeforeClass
+    public static void setUp() throws Exception {
+        pg.copyFileToContainer(MountableFile.forClasspathResource(SQL_FILE), "/tmp/");
+        String connectString = "postgres://" + pg.getUsername() + ":" + pg.getPassword() + "@localhost/" + pg.getDatabaseName();
+        Container.ExecResult result = pg.execInContainer(StandardCharsets.UTF_8, "psql", "--file=/tmp/" + SQL_FILE, connectString);
+        System.out.println(result.getStdout());
+        if (result.getExitCode() != 0) {
+            System.err.println(result.getStderr());
+            throw new IllegalStateException("Cannot load: " + SQL_FILE);
+        }
+        DatabaseMigrator.migrate(pg.datasource());
     }
 
-    private static PostgresITDataSource pg;
-    private static DataSource dataSource;
-
     @Before
-    public void setUp() throws Exception {
-        pg = new PostgresITDataSource("pgqueue");
-        dataSource = pg.getDataSource();
-        pg.clearTables("queue", "queue_error");
-        DatabaseMigrator.migrate(dataSource);
+    public void clearTables() throws SQLException {
+        try (Connection connection = pg.createConnection() ;
+             Statement stmt = connection.createStatement()) {
+            stmt.executeUpdate("TRUNCATE queue");
+            stmt.executeUpdate("TRUNCATE queue_error");
+        }
     }
 
     @Test
     public void testEnqueue() throws Exception {
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = pg.createConnection() ;
              PreparedQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).preparedSupplier(connection) ;
              Statement stmt = connection.createStatement()) {
             supplier.enqueue("a", "#1");
@@ -74,7 +99,7 @@ public class QueueSupplierIT {
 
     @Test
     public void testEnqueuePostpones() throws Exception {
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = pg.createConnection() ;
              PreparedQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).preparedSupplier(connection) ;
              Statement stmt = connection.createStatement()) {
             supplier.enqueue("a", "#1", 1500);
@@ -96,7 +121,7 @@ public class QueueSupplierIT {
     @Test(timeout = 2_000L)
     public void batchEnqueue() throws Exception {
         System.out.println("batchEnqueue");
-        try (Connection connection = dataSource.getConnection()) {
+        try (Connection connection = pg.createConnection()) {
             try (BatchQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).batchSupplier(connection, 10)) {
 
                 try (Statement stmt = connection.createStatement() ;

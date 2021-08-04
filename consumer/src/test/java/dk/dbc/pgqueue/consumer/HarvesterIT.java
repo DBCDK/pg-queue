@@ -19,9 +19,9 @@
 package dk.dbc.pgqueue.consumer;
 
 import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
-import dk.dbc.pgqueue.DatabaseMigrator;
-import dk.dbc.pgqueue.DeduplicateAbstraction;
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.DatabaseMigrator;
+import dk.dbc.pgqueue.common.DeduplicateAbstraction;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;

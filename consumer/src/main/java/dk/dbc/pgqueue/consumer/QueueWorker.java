@@ -18,8 +18,8 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.pgqueue.DeduplicateAbstraction;
-import dk.dbc.pgqueue.QueueStorageAbstraction;
+import dk.dbc.pgqueue.common.DeduplicateAbstraction;
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -406,36 +406,6 @@ public interface QueueWorker {
          */
         public Builder<T> health(QueueHealth health) {
             this.health = setOrFail(this.health, health, "health");
-            return this;
-        }
-
-        /**
-         * Set where to register performance stats
-         * <p>
-         * use either
-         * {@link #metricRegistryCodahale(com.codahale.metrics.MetricRegistry)}
-         * or
-         * {@link #metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry)}.
-         *
-         * @param metricRegistry the registry
-         * @return self
-         */
-        @Deprecated
-        public Builder<T> metricRegistry(com.codahale.metrics.MetricRegistry metricRegistry) {
-            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale/MicroProfile)");
-            log.warn("Deprecated use: {}.metricsRegistry(...)", getClass().getCanonicalName());
-            return this;
-        }
-
-        /**
-         * Set where to register performance stats (codahale style metrics)
-         *
-         * @param metricRegistry the registry (or null)
-         * @return self
-         */
-        public Builder<T> metricRegistryCodahale(com.codahale.metrics.MetricRegistry metricRegistry) {
-            if (metricRegistry != null)
-                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionCodahale(metricRegistry), "metricsRegistry(Codahale)");
             return this;
         }
 

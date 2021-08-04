@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dbc.pgqueue;
+package dk.dbc.pgqueue.supplier;
 
+import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collections;
