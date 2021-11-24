@@ -113,7 +113,7 @@ pipeline {
                             body: "<p>The master build failed. Log attached. </p><p><a href=\"${env.BUILD_URL}\">Build information</a>.</p>",
                             attachLog: true,
                     )
-                    slackSend(channel: 'de-team',
+                    slackSend(channel: 'de-notifications',
                             color: 'warning',
                             message: "${env.JOB_NAME} #${env.BUILD_NUMBER} failed and needs attention: ${env.BUILD_URL}",
                             tokenCredentialId: 'slack-global-integration-token')
