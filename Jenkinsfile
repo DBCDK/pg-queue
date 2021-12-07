@@ -2,7 +2,7 @@ pipeline {
     agent { label "devel10" }
 
     tools {
-        maven "maven 3.5"
+        maven "Maven 3"
         jdk 'jdk11'
     }
 
