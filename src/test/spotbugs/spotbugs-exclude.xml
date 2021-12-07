@@ -12,5 +12,4 @@
   <Match>
     <Bug code="RCN" />
   </Match>
-
 </FindBugsFilter>
