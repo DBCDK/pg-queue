@@ -17,7 +17,7 @@
     <parent>
         <groupId>dk.dbc</groupId>
         <artifactId>microservice-pom</artifactId>
-        <version>java11-payara-ce-SNAPSHOT</version>
+        <version>java11-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
