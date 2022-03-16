@@ -180,13 +180,13 @@ class JobWorker<T> implements Runnable {
             } catch (FatalQueueError ex) {
                 if (!ex.shouldThrottle())
                     success = true;
-                log.info("Fatal error: {}", ex.getMessage());
+                log.warn("Fatal error: {}", getExceptionMessage(ex));
                 log.debug("Fatal error: ", ex);
                 connection.rollback(savepoint);
                 connection.commit(); // In case of failJob fails
                 failJob(job, getExceptionMessage(ex));
             } catch (PostponedNonFatalQueueError ex) {
-                log.info("Non Fatal error: {} (postpone)", ex.getMessage());
+                log.warn("Non Fatal error: {} (postpone ms={})", getExceptionMessage(ex), ex.getPostponedMs());
                 log.debug("Non Fatal error: ", ex);
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
@@ -196,7 +196,7 @@ class JobWorker<T> implements Runnable {
                     postponeJob(job, ex.getPostponedMs());
                 }
             } catch (NonFatalQueueError | RuntimeException ex) {
-                log.info("Non Fatal error: {}", ex.getMessage());
+                log.warn("Non Fatal error: {}", getExceptionMessage(ex));
                 log.debug("Non Fatal error: ", ex);
                 connection.rollback(savepoint);
                 if (job.getTries() >= harvester.settings.maxTries) {
