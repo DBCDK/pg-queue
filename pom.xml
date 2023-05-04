@@ -22,8 +22,8 @@
     </parent>
 
     <properties>
-        <dbc-commons-testcontainers-postgres.version>1.0-SNAPSHOT</dbc-commons-testcontainers-postgres.version>
-        <testcontainers.version>1.15.1</testcontainers.version>
+        <dbc-commons-testcontainers-postgres.version>2.0-SNAPSHOT</dbc-commons-testcontainers-postgres.version>
+        <testcontainers.version>1.17.1</testcontainers.version>
     </properties>
 
     <modules>

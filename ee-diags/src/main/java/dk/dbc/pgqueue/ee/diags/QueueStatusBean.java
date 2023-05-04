@@ -253,6 +253,7 @@ public class QueueStatusBean {
             this.obj = obj;
         }
 
+        @SuppressWarnings("PMD.UnusedPrivateMethod")
         private void putInObject(Map.Entry<String, Map<String, Integer>> entry) {
             ObjectNode node = obj.with(entry.getKey());
             entry.getValue().entrySet()
