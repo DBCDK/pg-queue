@@ -511,6 +511,7 @@ class JobWorker<T> implements Runnable {
         if (timestampStmt == null) {
             try (QueueHealth.Context call = health.databaseCall()) {
                 timestampStmt = connection.prepareStatement(Harvester.SqlQueueTimestamp.SQL);
+                log.debug("Prepared statement: {}", Harvester.SqlQueueTimestamp.SQL);
             }
         }
         timestampStmt.setString(Harvester.SqlQueueTimestamp.CONSUMER_POS, queue);
@@ -527,6 +528,7 @@ class JobWorker<T> implements Runnable {
         if (clockStmt == null) {
             try (QueueHealth.Context call = health.databaseCall()) {
                 clockStmt = connection.prepareStatement(Harvester.SqlCurrentTimestamp.SQL);
+                log.debug("Prepared statement: {}", Harvester.SqlCurrentTimestamp.SQL);
             }
         }
         return clockStmt;
@@ -544,6 +546,7 @@ class JobWorker<T> implements Runnable {
         if (selectStmt == null) {
             try (QueueHealth.Context call = health.databaseCall()) {
                 selectStmt = connection.prepareStatement(harvester.getSelectSql());
+                log.debug("Prepared statement: {}", harvester.getSelectSql());
             }
         }
         selectStmt.setString(Harvester.SqlSelect.CONSUMER_POS, queue);
@@ -563,6 +566,7 @@ class JobWorker<T> implements Runnable {
         if (retryStmt == null) {
             try (QueueHealth.Context call = health.databaseCall()) {
                 retryStmt = connection.prepareStatement(harvester.getRetrySql());
+                log.debug("Prepared statement: {}", harvester.getRetrySql());
             }
         }
         job.save(retryStmt, 1);
@@ -583,8 +587,10 @@ class JobWorker<T> implements Runnable {
         if (postponeStmt == null) {
             try (QueueHealth.Context call = health.databaseCall()) {
                 postponeStmt = connection.prepareStatement(harvester.getPostponeSql());
+                log.debug("Prepared statement: {}", harvester.getPostponeSql());
             }
         }
+
         job.saveDelayed(postponeStmt, 1, milliseconds);
         harvester.settings.storageAbstraction
                 .saveJob(job.getActualJob(), postponeStmt, 1 + JobMetaData.POSTPONED_PLACEHOLDER_COUNT);
