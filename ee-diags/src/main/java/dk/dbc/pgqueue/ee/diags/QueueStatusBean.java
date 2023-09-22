@@ -92,8 +92,10 @@ public class QueueStatusBean {
         log.info("getQueueStatus called");
 
         return jsonResponse(() ->
-                queueStatusText(dataSource, diagPercentMatch, diagCollapseMaxRows,
-                                maxCacheAge, ignoreQueues, force), "Error getting queue status");
+                O.writeValueAsString(queueStatus(dataSource, diagPercentMatch, diagCollapseMaxRows,
+                                                 maxCacheAge, ignoreQueues, force)),
+                            "Error getting queue status");
+
     }
 
     /**
@@ -113,13 +115,12 @@ public class QueueStatusBean {
      *                            age
      * @param force               disregard caching (can be expensive)
      * @return json as text
-     * @throws com.fasterxml.jackson.core.JsonProcessingException Json error
      * @throws java.util.concurrent.ExecutionException            Parallel query
      *                                                            error
      * @throws java.lang.InterruptedException                     Parallel query
      *                                                            error
      */
-    public String queueStatusText(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows, long maxCacheAge, Set<String> ignoreQueues, boolean force) throws JsonProcessingException, ExecutionException, InterruptedException {
+    public ObjectNode queueStatus(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows, long maxCacheAge, Set<String> ignoreQueues, boolean force) throws InterruptedException, ExecutionException {
         synchronized (QUEUE_STATUS) {
             ObjectNode props = (ObjectNode) QUEUE_STATUS.get("props");
             JsonNode expires = props.get("expires");
@@ -179,7 +180,7 @@ public class QueueStatusBean {
             }
             QUEUE_STATUS.putPOJO("queue-max-age-skip-list", ignore.getIgnored());
             QUEUE_STATUS.put("queue-max-age", queueMaxAge);
-            return O.writeValueAsString(QUEUE_STATUS);
+            return QUEUE_STATUS;
         }
     }
 
@@ -265,9 +266,9 @@ public class QueueStatusBean {
     }
 
     private JsonNode createQueueStatusNode(DataSource dataSource) {
-        try (Connection connection = dataSource.getConnection() ;
-             Statement stmt = connection.createStatement() ;
-             PreparedStatement prepStmt = connection.prepareStatement("SELECT CAST(EXTRACT('epoch' FROM NOW() - dequeueafter) AS INTEGER) FROM queue WHERE consumer = ? ORDER BY dequeueafter LIMIT 1") ;
+        try (Connection connection = dataSource.getConnection();
+             Statement stmt = connection.createStatement();
+             PreparedStatement prepStmt = connection.prepareStatement("SELECT CAST(EXTRACT('epoch' FROM NOW() - dequeueafter) AS INTEGER) FROM queue WHERE consumer = ? ORDER BY dequeueafter LIMIT 1");
              ResultSet resultSet = stmt.executeQuery("SELECT consumer, COUNT(*) FROM queue WHERE dequeueafter < NOW() GROUP BY consumer")) {
             ObjectNode node = O.createObjectNode();
             while (resultSet.next()) {
@@ -295,8 +296,8 @@ public class QueueStatusBean {
 
     private JsonNode createDiagStatusNode(DataSource dataSource, int diagPercentMatch, int diagCollapseMaxRows) {
         HashMap<ArrayList<String>, AtomicInteger> diags = new HashMap<>();
-        try (Connection connection = dataSource.getConnection() ;
-             Statement stmt = connection.createStatement() ;
+        try (Connection connection = dataSource.getConnection();
+             Statement stmt = connection.createStatement();
              ResultSet resultSet = stmt.executeQuery("SELECT diag FROM queue_error LIMIT " + diagCollapseMaxRows)) {
             while (resultSet.next()) {
                 addToDiags(diags, resultSet.getString(1), diagPercentMatch);
@@ -318,8 +319,8 @@ public class QueueStatusBean {
     }
 
     private Integer createTransactionAge(DataSource dataSource) {
-        try (Connection connection = dataSource.getConnection() ;
-             Statement stmt = connection.createStatement() ;
+        try (Connection connection = dataSource.getConnection();
+             Statement stmt = connection.createStatement();
              ResultSet resultSet = stmt.executeQuery("SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP - xact_start) FROM pg_stat_activity WHERE xact_start IS NOT NULL ORDER BY xact_start LIMIT 1")) {
             if (resultSet.next()) {
                 return resultSet.getInt(1);
@@ -332,8 +333,8 @@ public class QueueStatusBean {
     }
 
     private Integer createDiagCount(DataSource dataSource) {
-        try (Connection connection = dataSource.getConnection() ;
-             Statement stmt = connection.createStatement() ;
+        try (Connection connection = dataSource.getConnection();
+             Statement stmt = connection.createStatement();
              ResultSet resultSet = stmt.executeQuery("SELECT COUNT(*) FROM queue_error")) {
             if (resultSet.next()) {
                 return resultSet.getInt(1);
@@ -349,7 +350,7 @@ public class QueueStatusBean {
         HashMap<String, Integer> distribution = new HashMap<>();
         String likePattern = pattern.replaceAll("([_%])", "\\$1").replaceAll("\\*", "%");
         log.debug("pattern = {}; likePattern = {}", pattern, likePattern);
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = dataSource.getConnection();
              PreparedStatement stmt = connection.prepareStatement("SELECT DATE_TRUNC('MINUTE',failedat) AS at, COUNT(*) FROM queue_error WHERE diag LIKE ? GROUP BY at ORDER BY at")) {
             stmt.setString(1, likePattern);
             try (ResultSet resultSet = stmt.executeQuery()) {

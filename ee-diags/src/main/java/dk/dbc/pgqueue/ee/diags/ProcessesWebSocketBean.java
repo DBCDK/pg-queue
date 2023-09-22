@@ -182,7 +182,7 @@ public class ProcessesWebSocketBean {
                         if (process != null && process.isCompleted()) {
                             ProcessLogger logger = process.getLogger();
 
-                            try (OutputStream out = session.getBasicRemote().getSendStream() ;
+                            try (OutputStream out = session.getBasicRemote().getSendStream();
                                  InputStream in = logger.getLogFile()) {
                                 byte[] buffer = new byte[1024];
                                 for (;;) {
@@ -197,7 +197,7 @@ public class ProcessesWebSocketBean {
                         break;
                     }
                     case "queue-diags": {
-                        String response = qsb.queueStatusText(config.getDataSource(), DIAG_PERCENT_MATCH, DIAG_COLLAPSE_MAX_ROWS, DIAG_MAX_CACHE_AGE, Collections.EMPTY_SET, true);
+                        String response = O.writeValueAsString(qsb.queueStatus(config.getDataSource(), DIAG_PERCENT_MATCH, DIAG_COLLAPSE_MAX_ROWS, DIAG_MAX_CACHE_AGE, Collections.EMPTY_SET, true));
                         response = "{\"action\":\"queue_diags\"," + response.substring(1);
                         session.getBasicRemote().sendText(response);
                         break;
@@ -261,7 +261,7 @@ public class ProcessesWebSocketBean {
         ret.put("pattern", pattern);
         ret.put("action", "count_diags");
         ObjectNode groups = ret.putObject("groups");
-        try (Connection connection = config.getDataSource().getConnection() ;
+        try (Connection connection = config.getDataSource().getConnection();
              PreparedStatement stmt = connection.prepareStatement("SELECT consumer, COUNT(*) FROM queue_error WHERE diag LIKE ? GROUP BY consumer ORDER BY consumer")) {
             stmt.setString(1, pattern.replace("%", "\\%").replace("*", "%"));
             try (ResultSet resultSet = stmt.executeQuery()) {
@@ -279,7 +279,7 @@ public class ProcessesWebSocketBean {
             public void run(Logger log) {
                 log.info("{} pattern: `{}'", name, pattern);
                 int maxComsumerLength = 0;
-                try (Connection connection = config.getDataSource().getConnection() ;
+                try (Connection connection = config.getDataSource().getConnection();
                      PreparedStatement stmt = connection.prepareStatement(sql)) {
                     connection.setAutoCommit(false);
                     stmt.setString(1, pattern.replace("%", "\\%").replace("*", "%"));
