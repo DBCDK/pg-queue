@@ -117,7 +117,7 @@ public class QueueMetrics {
                     }
                 }
             }
-            clearQueues.forEach(queue -> gauges.get(queue)
+            clearErrors.forEach(queue -> gauges.get(queue)
                     .withErrors(0));
 
         } catch (SQLException ex) {
