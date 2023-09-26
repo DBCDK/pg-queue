@@ -1,20 +1,24 @@
 package dk.dbc.pgqueue.ee.diags;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.hazelcast.map.IMap;
 import jakarta.annotation.PostConstruct;
 import jakarta.ejb.EJB;
 import jakarta.ejb.Schedule;
 import jakarta.ejb.Singleton;
 import jakarta.ejb.Startup;
 import jakarta.inject.Inject;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.concurrent.ExecutionException;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.eclipse.microprofile.metrics.Gauge;
 import org.eclipse.microprofile.metrics.MetricID;
 import org.eclipse.microprofile.metrics.MetricRegistry;
 import org.eclipse.microprofile.metrics.Tag;
@@ -42,15 +46,14 @@ public class QueueMetrics {
     @Inject
     public MetricRegistry registry;
 
-    @Inject
-    public QueueStatusBean bean;
-
     @EJB
     public PgQueueAdminConfig config;
 
+    @Inject
+    public IMap<String, Instant> lastSeen;
+
     private QueueStatusBean.IgnoreQueues ignoreQueues;
     private HashMap<String, QueueGauge> gauges;
-    private long errors;
 
     @PostConstruct
     public void init() {
@@ -61,64 +64,99 @@ public class QueueMetrics {
                         .filter(s -> !s.isEmpty())
                         .collect(Collectors.toSet()));
         gauges = new HashMap<>();
-        registry.register(ERRORS, new Gauge<Long>() {
-                      @Override
-                      public Long getValue() {
-                          return errors;
-                      }
-                  });
+        Instant cutoff = Instant.now().minus(7, ChronoUnit.DAYS);
+        lastSeen.entrySet().stream()
+                .filter(e -> e.getValue().isAfter(cutoff))
+                .map(Map.Entry::getKey)
+                .filter(ignoreQueues::keepOrIgnore)
+                .forEach(queue -> gauges.computeIfAbsent(queue, QueueGauge::new));
+        log.debug("(initial) gauges = {}", gauges);
     }
 
     @Schedule(hour = "*", minute = "*")
     public synchronized void looper() {
         log.debug("metrics");
 
-        try {
-            ObjectNode queueStatus = bean.queueStatus(config.getDataSource(),
-                                                      config.getDiagPercentMatch(),
-                                                      config.getDiagCollapseMaxRows(),
-                                                      config.getMaxCacheAge(),
-                                                      Collections.EMPTY_SET,
-                                                      false);
-            JsonNode queues = queueStatus.get("queue");
-            errors = queueStatus.get("diag-count").asLong();
-            if (queues.isObject()) { // Not an SQL error
-                HashMap<String, QueueGauge> resetGauges = new HashMap<>(gauges);
-                queues.fields().forEachRemaining(e -> {
-                    String queue = e.getKey();
+        try (Connection connection = config.getDataSource().getConnection();
+             Statement stmt = connection.createStatement()) {
+            Instant loopTs = Instant.now();
+            HashSet<String> clearQueues = new HashSet(gauges.keySet());
+
+            try (ResultSet resultSet = stmt.executeQuery("SELECT consumer, COUNT(*), EXTRACT(EPOCH FROM NOW() - MIN(dequeueafter)) FROM queue WHERE dequeueafter < NOW() GROUP BY consumer")) {
+                while (resultSet.next()) {
+                    int i = 0;
+                    String queue = resultSet.getString(++i);
+                    log.debug("queue = {}", queue);
                     if (ignoreQueues.keepOrIgnore(queue)) {
+                        clearQueues.remove(queue);
+                        lastSeen.put(queue, loopTs);
+                        int count = resultSet.getInt(++i);
+                        double age = resultSet.getDouble(++i);
                         gauges.computeIfAbsent(queue, QueueGauge::new)
-                                .update(e.getValue());
-                        resetGauges.remove(queue);
+                                .withAge(age)
+                                .withCount(count);
                     }
-                });
-                resetGauges.values().forEach(QueueGauge::reset);
+                }
             }
-        } catch (ExecutionException | InterruptedException ex) {
-            log.error("Error getting queue status for metrics: {}", ex.getMessage());
-            log.debug("Error getting queue status for metrics: ", ex);
+            clearQueues.forEach(queue -> gauges.get(queue)
+                    .withAge(0)
+                    .withCount(0));
+
+            HashSet<String> clearErrors = new HashSet(gauges.keySet());
+            try (ResultSet resultSet = stmt.executeQuery("SELECT consumer, COUNT(*) FROM queue_error GROUP BY consumer")) {
+                while (resultSet.next()) {
+                    int i = 0;
+                    String queue = resultSet.getString(++i);
+                    log.debug("error_queue = {}", queue);
+                    if (ignoreQueues.keepOrIgnore(queue)) {
+                        clearErrors.remove(queue);
+                        lastSeen.put(queue, loopTs);
+                        int count = resultSet.getInt(++i);
+                        gauges.computeIfAbsent(queue, QueueGauge::new)
+                                .withErrors(count);
+                    }
+                }
+            }
+            clearQueues.forEach(queue -> gauges.get(queue)
+                    .withErrors(0));
+
+        } catch (SQLException ex) {
+            log.error("Error accessing queue tables: {}", ex.getMessage());
+            log.debug("Error accessing queue tables: ", ex);
         }
     }
 
     private class QueueGauge {
 
-        private long age;
+        private double age;
         private long count;
+        private long errors;
 
         public QueueGauge(String queue) {
             Tag tag = new Tag("queue", queue);
             registry.gauge(new MetricID(AGE, tag), () -> age);
             registry.gauge(new MetricID(COUNT, tag), () -> count);
+            registry.gauge(new MetricID(ERRORS, tag), () -> errors);
         }
 
-        public void update(JsonNode node) {
-            age = node.get("age").asLong();
-            count = node.get("count").asLong();
+        public QueueGauge withAge(double age) {
+            this.age = age;
+            return this;
         }
 
-        public void reset() {
-            age = 0;
-            count = 0;
+        public QueueGauge withCount(long count) {
+            this.count = count;
+            return this;
+        }
+
+        public QueueGauge withErrors(long errors) {
+            this.errors = errors;
+            return this;
+        }
+
+        @Override
+        public String toString() {
+            return "QueueGauge{" + "age=" + age + ", count=" + count + ", errors=" + errors + '}';
         }
     }
 }
