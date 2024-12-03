@@ -17,13 +17,12 @@
     <parent>
         <groupId>dk.dbc</groupId>
         <artifactId>microservice-pom</artifactId>
-        <version>java11-SNAPSHOT</version>
+        <version>java17-SNAPSHOT</version>
         <relativePath/>
     </parent>
 
     <properties>
         <dbc-commons-testcontainers-postgres.version>2.0-SNAPSHOT</dbc-commons-testcontainers-postgres.version>
-        <testcontainers.version>1.17.1</testcontainers.version>
     </properties>
 
     <modules>

@@ -21,9 +21,12 @@ package dk.dbc.pgqueue.consumer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import org.junit.Test;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 /**
  *
@@ -34,7 +37,8 @@ public class ThrottleIT {
     /**
      * Test of throttle method, of class Throttle.
      */
-    @Test(timeout = 1000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testThrottleReset() throws Exception {
         ArrayList<Instant> times = new ArrayList<>();
         ArrayList<Long> delayList = new ArrayList<>();
@@ -105,23 +109,23 @@ public class ThrottleIT {
         System.out.println("delays = " + Arrays.toString(delays));
         System.out.println("fromOrigin = " + Arrays.toString(fromOrigin));
 
-        assertTrue("1st delay <= 1", delays[0] <= 1);
-        assertTrue("1st invocation time <= 100", fromOrigin[0] <= 100);
+        assertThat("1st delay <= 1", delays[0], lessThanOrEqualTo(1L));
+        assertThat("1st invocation time <= 100", fromOrigin[0], lessThanOrEqualTo(100L));
 
-        assertTrue("2nd delay <= 1", delays[1] <= 1);
-        assertTrue("2nd invocation time <= 100", fromOrigin[1] <= 100);
+        assertThat("2nd delay <= 1", delays[1], lessThanOrEqualTo(1L));
+        assertThat("2nd invocation time <= 100", fromOrigin[1], lessThanOrEqualTo(100L));
 
-        assertTrue("3rd delay <= 1", delays[2] <= 1);
-        assertTrue("3rd invocation time <= 100", fromOrigin[2] <= 100);
+        assertThat("3rd delay <= 1", delays[2], lessThanOrEqualTo(1L));
+        assertThat("3rd invocation time <= 100", fromOrigin[2], lessThanOrEqualTo(100L));
 
         // Ensure delay is expected
-        assertTrue("4th delay >= 400", delays[3] >= 400);
-        assertTrue("4th delay <= 500", delays[3] <= 500);
+        assertThat("4th delay >= 400", delays[3], greaterThanOrEqualTo(400L));
+        assertThat("4th delay <= 500", delays[3], lessThanOrEqualTo(500L));
         // Ensure sleep in interrupted
-        assertTrue("4th invocation time >= 100", fromOrigin[3] >= 100);
-        assertTrue("4th invocation time <= 200", fromOrigin[3] <= 200);
+        assertThat("4th invocation time >= 100", fromOrigin[3], greaterThanOrEqualTo(100L));
+        assertThat("4th invocation time <= 200", fromOrigin[3], lessThanOrEqualTo(200L));
 
         // Ensure list has been cleared
-        assertTrue("5th delay <= 1", delays[4] <= 1);
+        assertThat("5th delay <= 1", delays[4], lessThanOrEqualTo(1L));
     }
 }
