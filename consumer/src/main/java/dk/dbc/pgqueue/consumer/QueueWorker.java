@@ -201,15 +201,16 @@ public interface QueueWorker {
         /**
          * Set whether deduplication of jobs should occur and whether deduplication should include postponed items.
          *
-         * @param deduplicateAbstraction definition of what a duplicate job is
+         * @param deduplicateAbstraction          definition of what a duplicate job is
          * @param includePostponedInDeduplication whether to include postponed items when deduplicating
-         * @param deduplicateFromAllConsumers if deduplicate should happen on all queues or only the one that the primary job is from
+         * @param deduplicateFromAllConsumers     if deduplicate should happen on all queues or only the one that the
+         *                                        primary job is from
          * @return self
          */
         public Builder<T> skipDuplicateJobs(DeduplicateAbstraction<T> deduplicateAbstraction, boolean includePostponedInDeduplication, boolean deduplicateFromAllConsumers) {
             this.deduplicateAbstraction = setOrFail(this.deduplicateAbstraction, deduplicateAbstraction, "skipDuplicateJobs");
             this.includePostponedInDeduplication = includePostponedInDeduplication;
-            this.deduplicateFromAllConsumers  = deduplicateFromAllConsumers;
+            this.deduplicateFromAllConsumers = deduplicateFromAllConsumers;
             return this;
         }
 
@@ -418,6 +419,28 @@ public interface QueueWorker {
         public Builder<T> metricRegistryMicroProfile(org.eclipse.microprofile.metrics.MetricRegistry metricRegistry) {
             if (metricRegistry != null)
                 this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionMicroProfile(metricRegistry), "metricsRegistry(MicroProfile)");
+            return this;
+        }
+
+        /**
+         * Set where to register performance stats (io prometheus style metrics)
+         *
+         * @return self
+         */
+        public Builder<T> metricRegistryIoPrometheus() {
+            this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionIoPrometheus(), "metricsRegistry(IoPrometheus-default)");
+            return this;
+        }
+
+        /**
+         * Set where to register performance stats (io prometheus style metrics)
+         *
+         * @param metricRegistry the registry
+         * @return self
+         */
+        public Builder<T> metricRegistryIoPrometheus(io.prometheus.metrics.model.registry.PrometheusRegistry metricRegistry) {
+            if (metricRegistry != null)
+                this.metricsAbstraction = setOrFail(this.metricsAbstraction, new MetricAbstractionIoPrometheus(metricRegistry), "metricsRegistry(IoPrometheus)");
             return this;
         }
 
