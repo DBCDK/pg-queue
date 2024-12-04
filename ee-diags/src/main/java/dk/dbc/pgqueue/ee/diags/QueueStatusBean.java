@@ -255,7 +255,7 @@ public class QueueStatusBean {
 
         @SuppressWarnings("PMD.UnusedPrivateMethod")
         private void putInObject(Map.Entry<String, Map<String, Integer>> entry) {
-            ObjectNode node = obj.with(entry.getKey());
+            ObjectNode node = obj.withObject(entry.getKey());
             entry.getValue().entrySet()
                     .stream()
                     .sorted(Map.Entry.comparingByKey())

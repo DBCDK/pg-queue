@@ -1,10 +1,5 @@
 pipeline {
-    agent { label "devel10" }
-
-    tools {
-        maven "Maven 3"
-        jdk 'jdk11'
-    }
+    agent { label "devel12" }
 
     environment {
         MAVEN_OPTS = "-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
@@ -69,17 +64,6 @@ pipeline {
                 }
             }
         }
-
-//        stage("coverage") {
-//            steps {
-//                step([$class: 'JacocoPublisher', 
-//                      execPattern: '**/target/*.exec',
-//                      classPattern: '**/target/classes',
-//                      sourcePattern: '**/src/main/java',
-//                      exclusionPattern: '**/src/test*'
-//                ])
-//            }
-//        }
 
         stage("upload") {
             steps {

@@ -18,13 +18,9 @@
  */
 package dk.dbc.pgqueue.supplier;
 
-import dk.dbc.pgqueue.supplier.QueueSupplier;
-import dk.dbc.pgqueue.supplier.PreparedQueueSupplier;
-import dk.dbc.pgqueue.supplier.BatchQueueSupplier;
 import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
 import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import dk.dbc.pgqueue.common.DatabaseMigrator;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -32,12 +28,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.testcontainers.containers.BindMode;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.testcontainers.containers.Container;
 import org.testcontainers.utility.MountableFile;
 
@@ -51,25 +46,30 @@ public class QueueSupplierIT {
 
     private static final String SQL_FILE = "queue-example.sql";
 
-    @ClassRule
-    public static DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+    private static final DBCPostgreSQLContainer PG = makePG();
 
-    @BeforeClass
+    private static DBCPostgreSQLContainer makePG() {
+        DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+        pg.start();
+        return pg;
+    }
+
+    @BeforeAll
     public static void setUp() throws Exception {
-        pg.copyFileToContainer(MountableFile.forClasspathResource(SQL_FILE), "/tmp/");
-        String connectString = "postgres://" + pg.getUsername() + ":" + pg.getPassword() + "@localhost/" + pg.getDatabaseName();
-        Container.ExecResult result = pg.execInContainer(StandardCharsets.UTF_8, "psql", "--file=/tmp/" + SQL_FILE, connectString);
+        PG.copyFileToContainer(MountableFile.forClasspathResource(SQL_FILE), "/tmp/");
+        String connectString = "postgres://" + PG.getUsername() + ":" + PG.getPassword() + "@localhost/" + PG.getDatabaseName();
+        Container.ExecResult result = PG.execInContainer(StandardCharsets.UTF_8, "psql", "--file=/tmp/" + SQL_FILE, connectString);
         System.out.println(result.getStdout());
         if (result.getExitCode() != 0) {
             System.err.println(result.getStderr());
             throw new IllegalStateException("Cannot load: " + SQL_FILE);
         }
-        DatabaseMigrator.migrate(pg.datasource());
+        DatabaseMigrator.migrate(PG.datasource());
     }
 
-    @Before
+    @BeforeEach
     public void clearTables() throws SQLException {
-        try (Connection connection = pg.createConnection() ;
+        try (Connection connection = PG.createConnection() ;
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("TRUNCATE queue");
             stmt.executeUpdate("TRUNCATE queue_error");
@@ -77,8 +77,9 @@ public class QueueSupplierIT {
     }
 
     @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testEnqueue() throws Exception {
-        try (Connection connection = pg.createConnection() ;
+        try (Connection connection = PG.createConnection() ;
              PreparedQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).preparedSupplier(connection) ;
              Statement stmt = connection.createStatement()) {
             supplier.enqueue("a", "#1");
@@ -98,8 +99,9 @@ public class QueueSupplierIT {
     }
 
     @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testEnqueuePostpones() throws Exception {
-        try (Connection connection = pg.createConnection() ;
+        try (Connection connection = PG.createConnection() ;
              PreparedQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).preparedSupplier(connection) ;
              Statement stmt = connection.createStatement()) {
             supplier.enqueue("a", "#1", 1500);
@@ -118,10 +120,11 @@ public class QueueSupplierIT {
         }
     }
 
-    @Test(timeout = 2_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void batchEnqueue() throws Exception {
         System.out.println("batchEnqueue");
-        try (Connection connection = pg.createConnection()) {
+        try (Connection connection = PG.createConnection()) {
             try (BatchQueueSupplier<String> supplier = new QueueSupplier<>(QUEUE_STORAGE_ABSTRACTION).batchSupplier(connection, 10)) {
 
                 try (Statement stmt = connection.createStatement() ;

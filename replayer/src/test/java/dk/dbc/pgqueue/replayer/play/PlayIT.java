@@ -18,23 +18,24 @@
  */
 package dk.dbc.pgqueue.replayer.play;
 
-import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
+import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
 import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.pgqueue.replayer.ExitException;
 import dk.dbc.pgqueue.replayer.GenericJobMapper;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
-import javax.sql.DataSource;
+import java.util.concurrent.TimeUnit;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -49,46 +50,50 @@ public class PlayIT {
     private static final String QUEUE_NAME = "mine";
     private static final long OFFSET_SLOP = 15L;
 
-    private DataSource dataSource;
+    private static final DBCPostgreSQLContainer PG = makePG();
 
-    @BeforeClass
-    public static void initDatabase() throws Exception {
-        DataSource dataSource = new PostgresITDataSource("queuetest").getDataSource();
+    private static DBCPostgreSQLContainer makePG() {
+        DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+        pg.start();
 
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = pg.createConnection();
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA PUBLIC CASCADE");
             stmt.executeUpdate("CREATE SCHEMA PUBLIC");
             stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, caterpillar JSONB )");
             stmt.executeUpdate("CREATE TABLE queue_error AS SELECT * FROM queue");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Cannot start up database", ex);
         }
-        DatabaseMigrator.migrate(dataSource);
+        DatabaseMigrator.migrate(pg.datasource());
+        return pg;
     }
 
-    @Before
+
+    @BeforeEach
     public void cleanDatabase() throws Exception {
-        this.dataSource = new PostgresITDataSource("queuetest").getDataSource();
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = PG.createConnection();
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("TRUNCATE queue");
             stmt.executeUpdate("TRUNCATE queue_error");
         }
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testPlay() throws Exception {
         System.out.println("testPlay");
 
         InputStream is = getClass().getClassLoader().getResourceAsStream("play-test.csv");
-        GenericJobMapper mapper = GenericJobMapper.from(dataSource);
-        try (Play play = new Play(dataSource, Long.MAX_VALUE, Long.MAX_VALUE, is, QUEUE_NAME, 1, mapper)) {
+        GenericJobMapper mapper = GenericJobMapper.from(PG.datasource());
+        try (Play play = new Play(PG.datasource(), Long.MAX_VALUE, Long.MAX_VALUE, is, QUEUE_NAME, 1, mapper)) {
             play.run();
             fail("expected end of input exception");
         } catch (ExitException ex) {
             assertThat(ex.getStatusCode(), is(Arguments.EXIT_END_OF_INPUT));
         }
-        try (Connection connection = dataSource.getConnection() ;
-             Statement stmt = connection.createStatement() ;
+        try (Connection connection = PG.createConnection();
+             Statement stmt = connection.createStatement();
              ResultSet resultSet = stmt.executeQuery("SELECT dequeueafter, ape, badger, caterpillar FROM queue ORDER BY dequeueAfter")) {
             assertThat(resultSet.next(), is(true));
             Instant firstTimestamp = resultSet.getTimestamp(1).toInstant();

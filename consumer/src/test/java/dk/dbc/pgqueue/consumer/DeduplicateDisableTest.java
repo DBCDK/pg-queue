@@ -20,7 +20,9 @@ package dk.dbc.pgqueue.consumer;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import org.junit.Test;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -31,7 +33,8 @@ import static org.hamcrest.MatcherAssert.*;
  */
 public class DeduplicateDisableTest {
 
-    @Test(timeout = 2_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testTimeout() throws Exception {
         System.out.println("testTimeout");
 

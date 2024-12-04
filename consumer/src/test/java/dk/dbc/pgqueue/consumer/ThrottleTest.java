@@ -23,82 +23,71 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
 
 /**
  *
  * @author DBC {@literal <dbc.dk>}
  */
-@RunWith(Parameterized.class)
 public class ThrottleTest {
 
     private static final Logger log = LoggerFactory.getLogger(ThrottleTest.class);
     private static final ObjectMapper OBJECT_MAPPER = new YAMLMapper();
 
-    private final String resource;
-    private final JsonNode test;
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> tests() throws Exception {
+    public static Stream<Arguments> tests() throws Exception {
         String name = ThrottleTest.class.getCanonicalName();
         URL url = ThrottleTest.class.getClassLoader().getResource(name);
         return Stream.of(new File(url.getPath()).list())
                 .filter(s -> s.endsWith(".yaml"))
-                .map(s -> new Object[] {name + "/" + s})
-                .collect(toList());
+                .map(s -> Arguments.of(name + "/" + s));
     }
 
-    public ThrottleTest(String resource) throws IOException {
-        this.resource = resource;
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resource)) {
-            this.test = OBJECT_MAPPER.readTree(is);
-        }
-    }
-
-    @Test
-    public void test() {
+    @ParameterizedTest
+    @MethodSource("tests")
+    public void test(String resource) throws Exception {
         System.out.println(resource);
-        AtomicLong time = new AtomicLong(1_000_000L);
-        AtomicLong sleep = new AtomicLong();
-        Throttle throttle = new Throttle(test.get("rules").asText()) {
-            @Override
-            long timeIs() {
-                return time.get();
-            }
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream(resource)) {
+            JsonNode test = OBJECT_MAPPER.readTree(is);
+            AtomicLong time = new AtomicLong(1_000_000L);
+            AtomicLong sleep = new AtomicLong();
+            Throttle throttle = new Throttle(test.get("rules").asText()) {
+                @Override
+                long timeIs() {
+                    return time.get();
+                }
 
-            @Override
-            void sleep(long delay) {
-                time.addAndGet(delay);
-                sleep.addAndGet(delay);
-            }
+                @Override
+                void sleep(long delay) {
+                    time.addAndGet(delay);
+                    sleep.addAndGet(delay);
+                }
 
-        };
-        ArrayNode actions = (ArrayNode) test.get("test");
-        for (int i = 0 ; i < actions.size() ; i++) {
-            sleep.set(0);
-            JsonNode action = actions.get(i);
-            int expectedDelay = action.get("delay").asInt();
-            boolean result = action.get("result").asBoolean();
+            };
+            ArrayNode actions = (ArrayNode) test.get("test");
+            for (int i = 0 ; i < actions.size() ; i++) {
+                sleep.set(0);
+                JsonNode action = actions.get(i);
+                long expectedDelay = action.get("delay").asLong();
+                boolean result = action.get("result").asBoolean();
 
-            throttle.throttle();
-            assertEquals("Expected wait for Test #" + ( 1 + i ), expectedDelay, sleep.get());
-            throttle.register(result);
-            JsonNode duration = action.get("duration");
-            if (duration != null) {
-                time.addAndGet(duration.asLong());
+                throttle.throttle();
+                assertThat("Expected wait for Test #" + ( 1 + i ), expectedDelay, is(sleep.get()));
+                throttle.register(result);
+                JsonNode duration = action.get("duration");
+                if (duration != null) {
+                    time.addAndGet(duration.asLong());
+                }
             }
         }
     }

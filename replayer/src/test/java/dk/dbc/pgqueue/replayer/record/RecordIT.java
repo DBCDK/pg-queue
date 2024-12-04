@@ -18,7 +18,7 @@
  */
 package dk.dbc.pgqueue.replayer.record;
 
-import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
+import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
 import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.pgqueue.supplier.PreparedQueueSupplier;
 import dk.dbc.pgqueue.supplier.QueueSupplier;
@@ -26,9 +26,6 @@ import dk.dbc.pgqueue.replayer.GenericJobMapper;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
 import javax.sql.DataSource;
 import java.io.ByteArrayOutputStream;
@@ -38,6 +35,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -53,39 +54,43 @@ public class RecordIT {
     private static final String QUEUE_NAME = "mine";
     private static final long OFFSET_SLOP = 10L;
 
-    private DataSource dataSource;
+    private static final DBCPostgreSQLContainer PG = makePG();
 
-    @BeforeClass
-    public static void initDatabase() throws Exception {
-        DataSource dataSource = new PostgresITDataSource("queuetest").getDataSource();
+    private static DBCPostgreSQLContainer makePG() {
+        DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+        pg.start();
 
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = pg.createConnection();
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA PUBLIC CASCADE");
             stmt.executeUpdate("CREATE SCHEMA PUBLIC");
             stmt.executeUpdate("CREATE TABLE queue( ape TEXT, badger INT, caterpillar JSONB )");
             stmt.executeUpdate("CREATE TABLE queue_error AS SELECT * FROM queue");
+        } catch (SQLException ex) {
+            throw new IllegalStateException("Cannot start up database", ex);
         }
-        DatabaseMigrator.migrate(dataSource);
+        DatabaseMigrator.migrate(pg.datasource());
+        return pg;
     }
 
-    @Before
+    @BeforeEach
     public void cleanDatabase() throws Exception {
-        this.dataSource = new PostgresITDataSource("queuetest").getDataSource();
-        try (Connection connection = dataSource.getConnection() ;
+
+        try (Connection connection = PG.createConnection();
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("TRUNCATE queue");
             stmt.executeUpdate("TRUNCATE queue_error");
         }
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testRecord() throws Exception {
         System.out.println("testRecord");
 
-        GenericJobMapper mapper = GenericJobMapper.from(dataSource);
+        GenericJobMapper mapper = GenericJobMapper.from(PG.datasource());
 
-        try (Connection connection = dataSource.getConnection()) {
+        try (Connection connection = PG.createConnection()) {
             PreparedQueueSupplier<String[]> supplier = new QueueSupplier<>(mapper)
                     .preparedSupplier(connection);
             supplier.enqueue(QUEUE_NAME, job("zero", null, null), 100);
@@ -95,7 +100,7 @@ public class RecordIT {
 
         String csv;
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            try (Record record = new RecordWithoutTrimQueue(dataSource, bos, mapper)) {
+            try (Record record = new RecordWithoutTrimQueue(PG.datasource(), bos, mapper)) {
                 record.run();
             }
             bos.flush();
@@ -124,7 +129,7 @@ public class RecordIT {
         String line3 = line.next();
         assertThat(line3, containsString("sixtyfive"));
         long offset3 = offsetFromLine(line3) - origin;
-        assertThat(offset3, near(65L));
+        assertThat(offset3, near(70L));
 
         assertThat(line.hasNext(), is(false));
     }

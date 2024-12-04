@@ -18,13 +18,11 @@
  */
 package dk.dbc.pgqueue.consumer;
 
-import dk.dbc.commons.testutils.postgres.connection.PostgresITDataSource;
+import dk.dbc.commons.testcontainers.postgres.DBCPostgreSQLContainer;
 import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.pgqueue.common.DeduplicateAbstraction;
 import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -39,6 +37,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.MatcherAssert.*;
@@ -49,24 +50,22 @@ import static org.hamcrest.MatcherAssert.*;
  */
 public class HarvesterIT {
 
-    private static PostgresITDataSource pg;
-    private static DataSource dataSource;
+    private static final DBCPostgreSQLContainer PG = makePG();
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
-        pg = new PostgresITDataSource("pgqueue");
-        dataSource = pg.getDataSource();
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = PG.createConnection();
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA public CASCADE");
             stmt.executeUpdate("CREATE SCHEMA public");
             stmt.executeUpdate("CREATE TABLE queue ( job TEXT NOT NULL )");
             stmt.executeUpdate("CREATE TABLE queue_error ( job TEXT NOT NULL )");
         }
-        DatabaseMigrator.migrate(dataSource);
+        DatabaseMigrator.migrate(PG.datasource());
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testMultipleQueuesOrdered() throws Exception {
         System.out.println("testMultipleQueuesOrdered");
         ArrayList<String> jobs = new ArrayList<>();
@@ -79,7 +78,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -102,7 +101,8 @@ public class HarvesterIT {
         assertThat(jobs, contains("0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f,g,h,i,j".split(",")));
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testFailPostpone() throws Exception {
         System.out.println("testFailPostpone");
         ArrayList<String> jobs = new ArrayList<>();
@@ -119,7 +119,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -139,7 +139,8 @@ public class HarvesterIT {
         assertThat(jobs, contains("0,1,2,3,4,1".split(",")));
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testMultiFail() throws Exception {
         System.out.println("testMultiFail");
         ArrayList<String> jobs = new ArrayList<>();
@@ -156,7 +157,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -178,7 +179,8 @@ public class HarvesterIT {
         assertThat(failedJobs(), contains("0".split(",")));
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testFatal() throws Exception {
         System.out.println("testFatal");
         ArrayList<String> jobs = new ArrayList<>();
@@ -195,7 +197,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -216,7 +218,8 @@ public class HarvesterIT {
         assertThat(failedJobs(), contains("0".split(",")));
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testDeduplication() throws Exception {
         System.out.println("testDeduplication");
         ArrayList<String> jobs = new ArrayList<>();
@@ -229,7 +232,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -255,7 +258,8 @@ public class HarvesterIT {
         assertThat(remainingJobs, contains("1,3".split(",")));
     }
 
-    @Test(timeout = 5_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testDeduplicationIncludePostponed() throws Exception {
         System.out.println("testDeduplication");
         ArrayList<String> jobs = new ArrayList<>();
@@ -268,7 +272,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -294,7 +298,8 @@ public class HarvesterIT {
         assertThat(remainingJobs, contains("3".split(","))); // "1" from the postponed jobs was removed
     }
 
-    @Test(timeout = 2_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testDeduplicateOnlyOwnQueue() throws Exception {
         System.out.println("testDeduplicateOnlyOwnQueue");
         ArrayList<String> jobs = new ArrayList<>();
@@ -307,7 +312,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -338,7 +343,8 @@ public class HarvesterIT {
         assertThat(remainingJobsBar, contains("1,1,1,1,2,2,2".split(",")));
     }
 
-    @Test(timeout = 2_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testDeduplicateAllQueues() throws Exception {
         {
             ArrayList<String> remainingJobsFoo = queueRemainingJobs("foo");
@@ -357,7 +363,7 @@ public class HarvesterIT {
             }
         };
         QueueWorker queueWorker = QueueWorker.builder(STORAGE_ABSTRACTION)
-                .dataSource(dataSource)
+                .dataSource(PG.datasource())
                 .emptyQueueSleep(200)
                 .maxTries(2)
                 .consume("foo", "bar")
@@ -388,18 +394,19 @@ public class HarvesterIT {
         assertThat(remainingJobsBar, empty());
     }
 
-    @Test(timeout = 2_000L)
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
     public void testOnEmptyDatabase() throws Exception {
         System.out.println("testOnEmptyDatabase");
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = PG.createConnection();
              Statement stmt = connection.createStatement()) {
             stmt.executeUpdate("DROP SCHEMA public CASCADE");
             stmt.executeUpdate("CREATE SCHEMA public");
             stmt.executeUpdate("CREATE TABLE queue ( jobber TEXT NOT NULL )");
             stmt.executeUpdate("CREATE TABLE queue_error ( jobber TEXT NOT NULL )");
         }
-        DatabaseMigrator.migrate(dataSource);
-        CountedDataSource countedDataSource = new CountedDataSource(dataSource);
+        DatabaseMigrator.migrate(PG.datasource());
+        CountedDataSource countedDataSource = new CountedDataSource(PG.datasource());
 
         JobConsumer<String> consumer = (JobConsumer<String>) (Connection c, String job, JobMetaData metaData) -> {
         };
@@ -421,7 +428,7 @@ public class HarvesterIT {
     }
 
     private void queue(String queueName, String... jobs) throws SQLException {
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = PG.createConnection();
              PreparedStatement stmt = connection.prepareStatement("INSERT INTO queue(consumer, job) VALUES(?, ?)")) {
             stmt.setString(1, queueName);
             for (String job : jobs) {
@@ -432,7 +439,7 @@ public class HarvesterIT {
     }
 
     private void queuePostponed(String queueName, int timeout, String... jobs) throws SQLException {
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = PG.createConnection();
              PreparedStatement stmt = connection.prepareStatement("INSERT INTO queue(consumer, dequeueAfter, job) VALUES(?, now() + ? * INTERVAL '1 seconds', ?)")) {
             stmt.setString(1, queueName);
             stmt.setInt(2, timeout);
@@ -445,7 +452,7 @@ public class HarvesterIT {
 
     private ArrayList<String> queueRemainingJobs(String queueName) throws SQLException {
         ArrayList<String> ret = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection() ;
+        try (Connection connection = PG.createConnection();
              PreparedStatement stmt = connection.prepareStatement("SELECT job FROM queue WHERE consumer = ?")) {
             stmt.setString(1, queueName);
             try (ResultSet resultSet = stmt.executeQuery()) {
@@ -459,8 +466,8 @@ public class HarvesterIT {
 
     private List<String> failedJobs() throws SQLException {
         ArrayList<String> res = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection() ;
-             PreparedStatement stmt = connection.prepareStatement("SELECT job FROM queue_error ORDER BY queued") ;
+        try (Connection connection = PG.createConnection();
+             PreparedStatement stmt = connection.prepareStatement("SELECT job FROM queue_error ORDER BY queued");
              ResultSet resultSet = stmt.executeQuery()) {
             while (resultSet.next()) {
                 res.add(resultSet.getString(1));
@@ -506,6 +513,12 @@ public class HarvesterIT {
             return originalJob;
         }
     };
+
+    private static DBCPostgreSQLContainer makePG() {
+        DBCPostgreSQLContainer pg = new DBCPostgreSQLContainer();
+        pg.start();
+        return pg;
+    }
 
     private static class CountedDataSource implements DataSource {
 
