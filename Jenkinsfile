@@ -70,7 +70,7 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'master') {
                         sh """
-                            mvn -Dmaven.repo.local=\$WORKSPACE/.repo jar:jar deploy:deploy
+                            mvn -B -Dmaven.repo.local=\$WORKSPACE/.repo deploy -DskipTests -DskipITs
                         """
                     }
                 }
