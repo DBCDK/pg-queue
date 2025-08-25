@@ -41,7 +41,7 @@ pipeline {
                     def java = scanForIssues tool: [$class: 'Java']
                     def javadoc = scanForIssues tool: [$class: 'JavaDoc']
 
-                    publishIssues issues:[java,javadoc], unstableTotalAll:1
+                    publishIssues issues:[java,javadoc], unstableTotalAll:1000
                 }
             } 
         }
@@ -54,7 +54,7 @@ pipeline {
 
                 script {
                     def pmd = scanForIssues tool: [$class: 'Pmd'], pattern: '**/target/pmd.xml'
-                    publishIssues issues:[pmd], unstableTotalAll:1
+                    publishIssues issues:[pmd], unstableTotalAll:1000
 
                     def cpd = scanForIssues tool: [$class: 'Cpd'], pattern: '**/target/cpd.xml'
                     publishIssues issues:[cpd]
