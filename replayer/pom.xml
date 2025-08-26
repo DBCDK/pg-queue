@@ -75,7 +75,7 @@
 
         <dependency>
             <groupId>dk.dbc</groupId>
-            <artifactId>dbc-commons-testcontainers-postgres-15</artifactId>
+            <artifactId>dbc-commons-testcontainers-postgres-17</artifactId>
             <version>${dbc-commons-testcontainers-postgres.version}</version>
             <scope>test</scope>
         </dependency>

@@ -25,9 +25,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
 import javax.sql.DataSource;
@@ -41,14 +39,10 @@ import javax.sql.DataSource;
  */
 public class GenericJobMapper implements QueueStorageAbstraction<String[]> {
 
-    static final Set<String> QUEUE_ADMIN_COLUMNS = Collections.unmodifiableSet(new HashSet<String>() {
-        { // List verified by integration test
-            add("consumer");
-            add("queued");
-            add("dequeueafter");
-            add("tries");
-        }
-    });
+    static final Set<String> QUEUE_ADMIN_COLUMNS = Set.of(
+            "consumer",
+            "queued", "dequeueafter", "tries",
+            "pk");
 
     private final String[] columns;
     private final int[] types;
