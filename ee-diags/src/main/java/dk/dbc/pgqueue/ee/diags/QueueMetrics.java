@@ -73,7 +73,7 @@ public class QueueMetrics {
         log.debug("(initial) gauges = {}", gauges);
     }
 
-    @Schedule(hour = "*", minute = "*")
+    @Schedule(hour = "*", minute = "*", persistent = false)
     public synchronized void looper() {
         log.debug("metrics");
 
@@ -123,7 +123,11 @@ public class QueueMetrics {
         } catch (SQLException ex) {
             log.error("Error accessing queue tables: {}", ex.getMessage());
             log.debug("Error accessing queue tables: ", ex);
+        } catch (RuntimeException ex) {
+            log.error("Error updating queue tables: {}", ex.getMessage());
+            log.debug("Error updating queue tables: ", ex);
         }
+        log.debug("metrics-done");
     }
 
     private class QueueGauge {
