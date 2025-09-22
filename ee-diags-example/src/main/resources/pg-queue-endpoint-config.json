@@ -1,5 +1,0 @@
-{
-    "dataSource": "jdbc/pgqueue-ee-example",
-    "jobLogMapper": "dk.dbc.pgqueue.demo.Mapper.MAPPER",
-    "systemName": "DemoExample - queue admin"
-}
