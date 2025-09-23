@@ -2,48 +2,6 @@
 Database based queue system
 
 
-# Module specifics
-
-## ee-diags
-
-
-Application deploy needs this:
-
-```json
-    "hazelcast": {
-        "clusterName": "${HAZELCAST_CLUSTER}",
-        "mapConfig": {
-            "known_queues": {
-                "ttl": "PT72H",
-                "maxIdle": "PT24H",
-                "sizePerNode": 1000,
-                "format": "BINARY",
-                "backupCount": 0,
-                "asyncBackupCount":  0,
-                "nearCache": {
-                    "ttl": "PT24H",
-                    "maxIdle": "PT24H",
-                    "sizePerNode": 100,
-                    "format": "OBJECT"
-                }
-            }
-        }
-    }
-```
-And a headless dns name for the service... and payara network-policies.
-
-Configuration is in: `src/main/resources/pg-queue-endpoint-config.json`
-
-```json
-{
-    "dataSource": "jdbc/<datasource>",
-    "jobLogMapper": "<package>.<class>.<static-instance of JobLogMapper type>",
-    "systemName": "<service> - queue admin",
-    "diagPercentMatch": <collapsing queue error match ie 70>
-}
-```
-
-
 ## Throttle
 
 Throttle syntax is a comma separated list of:
