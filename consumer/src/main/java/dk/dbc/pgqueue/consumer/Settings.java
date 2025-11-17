@@ -18,11 +18,12 @@
  */
 package dk.dbc.pgqueue.consumer;
 
+import dk.dbc.pgqueue.common.DeduplicateAbstraction;
 import dk.dbc.pgqueue.common.QueueStorageAbstraction;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import dk.dbc.pgqueue.common.DeduplicateAbstraction;
 
 /**
  * This is a storage class for configuration, shared among harvester and
@@ -31,7 +32,7 @@ import dk.dbc.pgqueue.common.DeduplicateAbstraction;
  * @author DBC {@literal <dbc.dk>}
  * @param <T>
  */
-class Settings<T> {
+public class Settings<T> {
 
     final List<String> consumerNames;
     final QueueStorageAbstraction<T> storageAbstraction;
@@ -69,5 +70,25 @@ class Settings<T> {
         this.idleFullScanEvery = idleFullScanEvery;
         this.health = health;
         this.deduplicateDisable = deduplicateDisable;
+    }
+
+    public static <S> Settings<S> defaults(List<String> consumerNames, QueueStorageAbstraction<S> storageAbstraction) {
+        return new Settings<>(consumerNames,
+                storageAbstraction,
+                null,
+                false,
+                false,
+                3,
+                10_000L,
+                50L,
+                100,
+                10,
+                new Throttle(""),
+                new Throttle(""),
+                null,
+                new MetricAbstractionNull(),
+                100L,
+                null,
+                null);
     }
 }

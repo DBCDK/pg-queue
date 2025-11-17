@@ -65,12 +65,7 @@ public class QueueHealth {
     Context databaseCall() {
         Thread thread = Thread.currentThread();
         map.put(thread, Instant.now());
-        return new Context() {
-            @Override
-            public void close() {
-                map.remove(thread);
-            }
-        };
+        return () -> map.remove(thread);
     }
 
 }

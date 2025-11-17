@@ -19,6 +19,7 @@
 package dk.dbc.pgqueue.consumer;
 
 import dk.dbc.pgqueue.common.QueueStorageAbstraction;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -31,7 +32,7 @@ import java.sql.SQLException;
  *
  * @param <T>
  */
-class JobWithMetaData<T> extends JobMetaData {
+public class JobWithMetaData<T> extends JobMetaData {
 
     private T job;
 
@@ -48,12 +49,16 @@ class JobWithMetaData<T> extends JobMetaData {
         job = abstraction.createJob(resultSet, column + JobMetaData.COLUMN_COUNT);
     }
 
+    private JobWithMetaData(T job) {
+        this.job = job;
+    }
+
     /**
      * Get the actual job
      *
      * @return job of type T
      */
-    T getActualJob() {
+    public T getActualJob() {
         return job;
     }
 
@@ -61,4 +66,7 @@ class JobWithMetaData<T> extends JobMetaData {
         this.job = job;
     }
 
+    public static <T> JobWithMetaData<T> forTest(T job)  {
+        return new JobWithMetaData<T>(job);
+    }
 }
