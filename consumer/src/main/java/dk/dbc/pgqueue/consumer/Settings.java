@@ -35,7 +35,7 @@ import java.util.concurrent.ExecutorService;
 public class Settings<T> {
 
     final List<String> consumerNames;
-    final QueueStorageAbstraction<T> storageAbstraction;
+    public final QueueStorageAbstraction<T> storageAbstraction;
     final DeduplicateAbstraction<T> deduplicateAbstraction;
     final boolean includePostponedInDeduplication;
     final boolean deduplicateFromAllConsumers;
@@ -88,7 +88,7 @@ public class Settings<T> {
                 null,
                 new MetricAbstractionNull(),
                 100L,
-                null,
+                new QueueHealth(),
                 null);
     }
 }

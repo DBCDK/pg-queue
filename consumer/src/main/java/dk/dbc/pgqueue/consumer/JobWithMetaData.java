@@ -44,9 +44,9 @@ public class JobWithMetaData<T> extends JobMetaData {
      * @param abstraction how to convert the row to a job
      * @throws SQLException in case of communication errors with the database
      */
-    JobWithMetaData(ResultSet resultSet, int column, QueueStorageAbstraction<T> abstraction) throws SQLException {
+    public JobWithMetaData(ResultSet resultSet, int column, QueueStorageAbstraction<T> abstraction) throws SQLException {
         super(resultSet, column);
-        job = abstraction.createJob(resultSet, column + JobMetaData.COLUMN_COUNT);
+        job = abstraction.createJob(resultSet, column + COLUMN_COUNT);
     }
 
     private JobWithMetaData(T job) {

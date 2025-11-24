@@ -59,15 +59,14 @@ public class JobStatements<T> {
         return selectStmt;
     }
 
-    protected PreparedStatement getBatchSelectStmt(String queue, Timestamp timestamp, int limit) throws SQLException {
-        if (selectStmt == null) {
+    protected PreparedStatement getBatchSelectStmt(String queue, int limit) throws SQLException {
+        if (selectStmt == null || selectStmt.isClosed()) {
             try (QueueHealth.Context call = health.databaseCall()) {
                 selectStmt = connection.prepareStatement(harvester.getBatchSelectSql());
                 LOGGER.debug("Prepared statement: {}", harvester.getBatchSelectSql());
             }
         }
         selectStmt.setString(BasicHarvester.SqlBatchSelect.CONSUMER_POS, queue);
-        selectStmt.setTimestamp(BasicHarvester.SqlBatchSelect.TIMESTAMP_POS, timestamp);
         selectStmt.setInt(BasicHarvester.SqlBatchSelect.LIMIT_POS, limit);
         return selectStmt;
     }

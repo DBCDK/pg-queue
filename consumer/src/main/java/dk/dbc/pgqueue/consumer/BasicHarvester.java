@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class BasicHarvester<T> {
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicHarvester.class);
-    protected final Settings<T> settings;
+    public final Settings<T> settings;
     protected final DataSource dataSource;
     protected final String selectSql;
     protected final String batchSelectSql;
@@ -38,7 +38,7 @@ public class BasicHarvester<T> {
         this.dataSource = dataSource;
         String jobColumns = String.join(", ", config.storageAbstraction.columnList());
         selectSql = String.format(SqlSelect.SQL, config.window, jobColumns);
-        batchSelectSql = String.format(SqlBatchSelect.SQL, config.window, jobColumns);
+        batchSelectSql = String.format(SqlBatchSelect.SQL, jobColumns);
         int positionalArgumentsCount = config.storageAbstraction.columnList().length;
         String jobSqlPlaceholders = String.join(", ", Collections.nCopies(positionalArgumentsCount, "?"));
         retrySql = String.format(SqlInsert.SQL, jobColumns, JobMetaData.RETRY_PLACEHOLDER, jobSqlPlaceholders);
@@ -75,7 +75,7 @@ public class BasicHarvester<T> {
      * @return new Database connection
      * @throws SQLException
      */
-    Connection getConnection() throws SQLException {
+    protected Connection getConnection() throws SQLException {
         try (MetricAbstraction.Timer.Context time = databaseconnectTimer.time()) {
             Connection connection = dataSource.getConnection();
             try {
@@ -194,16 +194,14 @@ public class BasicHarvester<T> {
     public static class SqlBatchSelect {
         public static final String SQL = "DELETE" +
                 " FROM queue" +
-                " WHERE ctid = (SELECT ctid FROM queue WHERE consumer=?" +
+                " WHERE ctid in (SELECT ctid FROM queue WHERE consumer=?" +
                 " AND dequeueAfter<=clock_timestamp()" +
-                " AND dequeueAfter>=?::TIMESTAMP - INTERVAL '%d MILLISECONDS'" +
                 " ORDER BY consumer, dequeueAfter" + // hit existing index
                 " FOR UPDATE SKIP LOCKED" +
                 " LIMIT ?)" +
                 " RETURNING " + JobMetaData.COLUMNS + ", %s";
         public static final int CONSUMER_POS = 1;
-        public static final int TIMESTAMP_POS = 2;
-        public static final int LIMIT_POS = 3;
+        public static final int LIMIT_POS = 2;
     }
 
     public static class SqlDeleteDuplicate {
