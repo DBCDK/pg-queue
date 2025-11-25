@@ -23,6 +23,9 @@ import dk.dbc.pgqueue.common.DatabaseMigrator;
 import dk.dbc.pgqueue.common.DeduplicateAbstraction;
 import dk.dbc.pgqueue.common.QueueStorageAbstraction;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;
@@ -37,12 +40,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 
 /**
  *
@@ -476,8 +477,8 @@ public class HarvesterIT {
         return res;
     }
 
-    private static final QueueStorageAbstraction<String> STORAGE_ABSTRACTION = new QueueStorageAbstraction<String>() {
-        String[] COLUMNS = new String[] {"job"};
+    public static final QueueStorageAbstraction<String> STORAGE_ABSTRACTION = new QueueStorageAbstraction<>() {
+        String[] COLUMNS = new String[]{"job"};
 
         @Override
         public String[] columnList() {

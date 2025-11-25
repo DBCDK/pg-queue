@@ -21,7 +21,6 @@ package dk.dbc.pgqueue.consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,41 +28,22 @@ import java.sql.Savepoint;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 /**
  *
  * @author DBC {@literal <dbc.dk>}
  */
-class JobWorker<T> implements Runnable {
+public class JobWorker<T> extends JobStatements<T> implements Runnable {
 
     private static final Logger log = LoggerFactory.getLogger(JobWorker.class);
-
     private final JobConsumer<T> consumer;
-    private final Harvester<T> harvester;
-    private final HashMap<String, Timestamp> timestamps = new HashMap<>();
     private final QueueHealth health;
-    private Connection connection;
-    private PreparedStatement timestampStmt;
-    private PreparedStatement clockStmt;
-    private PreparedStatement selectStmt;
-    private PreparedStatement retryStmt;
-    private PreparedStatement postponeStmt;
-    private PreparedStatement failedStmt;
-    private PreparedStatement deleteDuplicateStmt;
-    private int fullScanCounter;
     private Thread self;
 
-    JobWorker(JobConsumer<T> consumer, Harvester<T> harvester, QueueHealth health) {
+    public JobWorker(JobConsumer<T> consumer, Harvester<T> harvester, QueueHealth health) {
+        super(harvester);
         this.consumer = consumer;
-        this.harvester = harvester;
-        this.connection = null;
-        this.selectStmt = null;
-        this.retryStmt = null;
-        this.postponeStmt = null;
-        this.failedStmt = null;
-        this.fullScanCounter = harvester.settings.fullScanEvery;
         this.health = health;
     }
 
@@ -113,7 +93,7 @@ class JobWorker<T> implements Runnable {
      * Get a job in this workers context.
      * <p>
      * Used by Harvester, for getting a job, that can be used as argument for
-     * calling {@link #process(dk.dbc.pgqueue.consumer.Job) }
+     * calling {@link #process(dk.dbc.pgqueue.consumer.JobWithMetaData) }
      *
      * @throws Exception If no connection can be made.
      */
@@ -220,7 +200,7 @@ class JobWorker<T> implements Runnable {
         }
     }
 
-    private String getExceptionMessage(Exception ex) {
+    protected String getExceptionMessage(Exception ex) {
         List<String> messages = new ArrayList<>(3);
         for (Throwable tw = ex ; tw != null && messages.size() < 3 ; tw = tw.getCause()) {
             String message = tw.getMessage();
@@ -335,350 +315,4 @@ class JobWorker<T> implements Runnable {
             return stmt.executeQuery();
         }
     }
-
-    /**
-     * Update tries count
-     *
-     * @param job the job and metadata for the queue entry
-     * @throws SQLException from database errors
-     */
-    private void retryJob(JobWithMetaData<T> job) throws SQLException {
-        log.debug("retrying job");
-        int rows;
-        try (MetricAbstraction.Timer.Context time = harvester.retryTimer.time() ;
-             QueueHealth.Context call = health.databaseCall()) {
-            rows = getRetryStmt(job).executeUpdate();
-        }
-        if (rows != 1) {
-            log.warn("Strange: retrying job, modified rows = " + rows);
-        }
-    }
-
-    /**
-     * Update tries count and postpone dequeue
-     *
-     * @param job         the job and metadata for the queue entry
-     * @param postponedMs number of milliseconds to postpone dequeue
-     * @throws SQLException from database errors
-     */
-    private void postponeJob(JobWithMetaData<T> job, long postponedMs) throws SQLException {
-        log.debug("postpone job for {}ms", postponedMs);
-        int rows;
-        try (MetricAbstraction.Timer.Context time = harvester.postponeTimer.time() ;
-             QueueHealth.Context call = health.databaseCall()) {
-            rows = getPostponeStmt(job, postponedMs).executeUpdate();
-        }
-        if (rows != 1) {
-            log.warn("Strange: postponing job, modified rows = " + rows);
-        }
-    }
-
-    /**
-     * Remove queue entry, and put it into queue_error
-     *
-     * @param job     the job that failed
-     * @param message the reason it failed
-     * @throws SQLException from database errors
-     */
-    private void failJob(JobWithMetaData<T> job, String message) throws SQLException {
-        log.debug("failing with: {}", message);
-        PreparedStatement stmt = getFailedStmt(job, message);
-        harvester.settings.storageAbstraction
-                .saveJob(job.getActualJob(),
-                         stmt,
-                         Harvester.SqlFailed.NEXT_POS);
-        int rows;
-        try (MetricAbstraction.Timer.Context time = harvester.failureTimer.time() ;
-             QueueHealth.Context call = health.databaseCall()) {
-            rows = stmt.executeUpdate();
-        }
-        if (rows != 1) {
-            log.warn("Strange: writing diag job, modified rows = " + rows);
-        }
-    }
-
-    /**
-     * Get the last seen timestamp for the queue
-     *
-     * @param queue name of queue
-     * @return timestamp (cached or retrieved)
-     */
-    private Timestamp getTimestampFor(String queue) throws SQLException {
-        try {
-            return timestamps.computeIfAbsent(queue, this::getTimestampFromDb);
-        } catch (RuntimeException ex) {
-            exceptionUnwrap(ex, SQLException.class);
-            throw ex;
-        }
-    }
-
-    /**
-     * Acquire a database connection
-     *
-     * @throws SQLException from database errors
-     */
-    private void setupConnection() throws SQLException {
-        connection = harvester.getConnection();
-    }
-
-    /**
-     * Disconnect from database
-     */
-    private void releaseConnection() {
-        if (connection != null) {
-            sql(() -> connection.close(), "Error closing connection");
-            connection = null;
-        }
-    }
-
-    /**
-     * Clear all prepared statements
-     */
-    private void releasePreparedStmts() {
-        if (timestampStmt != null) {
-            sql(() -> timestampStmt.close(), "Error closing timestamp statement");
-            timestampStmt = null;
-        }
-        if (clockStmt != null) {
-            sql(() -> clockStmt.close(), "Error closing clock statement");
-            clockStmt = null;
-        }
-        if (selectStmt != null) {
-            sql(() -> selectStmt.close(), "Error closing select statement");
-            selectStmt = null;
-        }
-        if (retryStmt != null) {
-            sql(() -> retryStmt.close(), "Error closing retry statement");
-            retryStmt = null;
-        }
-        if (postponeStmt != null) {
-            sql(() -> postponeStmt.close(), "Error closing postpone statement");
-            postponeStmt = null;
-        }
-        if (failedStmt != null) {
-            sql(() -> failedStmt.close(), "Error closing failed statement");
-            failedStmt = null;
-        }
-        if (deleteDuplicateStmt != null) {
-            sql(() -> deleteDuplicateStmt.close(), "Error closing delete duplicate statement");
-            deleteDuplicateStmt = null;
-        }
-    }
-
-    /**
-     * Acquire a timestamp or a .5 second before now
-     *
-     * @param queue name of queue toe query
-     * @return oldest queue entry time
-     */
-    private Timestamp getTimestampFromDb(String queue) {
-        long before = System.currentTimeMillis();
-        try (MetricAbstraction.Timer.Context time = harvester.timestampTimer.time()) {
-            try (QueueHealth.Context call = health.databaseCall() ;
-                 ResultSet resultSet = getTimestampStmt(queue).executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getTimestamp(1);
-                }
-            }
-            try (QueueHealth.Context call = health.databaseCall() ;
-                 ResultSet resultSet = getClockStmt().executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getTimestamp(1);
-                }
-            }
-            throw new SQLException("Cannot get timestamp from database");
-        } catch (SQLException ex) {
-            throw new RuntimeException(ex);
-        } finally {
-            long after = System.currentTimeMillis();
-            long elapsed = after - before;
-            if (elapsed >= harvester.settings.maxQueryTime) {
-                log.info("Query took {}ms, making new prepared statements", elapsed);
-                harvester.recalcPreparedStatementCounter.inc();
-                releasePreparedStmts();
-            }
-        }
-    }
-
-    /**
-     * Construct a prepared statement, if needed, and fill in data
-     *
-     * @param queue
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getTimestampStmt(String queue) throws SQLException {
-        if (timestampStmt == null) {
-            try (QueueHealth.Context call = health.databaseCall()) {
-                timestampStmt = connection.prepareStatement(Harvester.SqlQueueTimestamp.SQL);
-                log.debug("Prepared statement: {}", Harvester.SqlQueueTimestamp.SQL);
-            }
-        }
-        timestampStmt.setString(Harvester.SqlQueueTimestamp.CONSUMER_POS, queue);
-        return timestampStmt;
-    }
-
-    /**
-     * Construct a prepared statement, if needed
-     *
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getClockStmt() throws SQLException {
-        if (clockStmt == null) {
-            try (QueueHealth.Context call = health.databaseCall()) {
-                clockStmt = connection.prepareStatement(Harvester.SqlCurrentTimestamp.SQL);
-                log.debug("Prepared statement: {}", Harvester.SqlCurrentTimestamp.SQL);
-            }
-        }
-        return clockStmt;
-    }
-
-    /**
-     * Construct a prepared statement, if needed, and fill in data
-     *
-     * @param queue     queue name to dequeue from
-     * @param timestamp last known timestamp
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getSelectStmt(String queue, Timestamp timestamp) throws SQLException {
-        if (selectStmt == null) {
-            try (QueueHealth.Context call = health.databaseCall()) {
-                selectStmt = connection.prepareStatement(harvester.getSelectSql());
-                log.debug("Prepared statement: {}", harvester.getSelectSql());
-            }
-        }
-        selectStmt.setString(Harvester.SqlSelect.CONSUMER_POS, queue);
-        selectStmt.setTimestamp(Harvester.SqlSelect.TIMESTAMP_POS, timestamp);
-        return selectStmt;
-    }
-
-    /**
-     * Construct a prepared statement, if needed, and fill in data
-     *
-     * @param newTriesCount how many times the job has been tried
-     * @param job           the job and metadata for the queue entry
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getRetryStmt(JobWithMetaData<T> job) throws SQLException {
-        if (retryStmt == null) {
-            try (QueueHealth.Context call = health.databaseCall()) {
-                retryStmt = connection.prepareStatement(harvester.getRetrySql());
-                log.debug("Prepared statement: {}", harvester.getRetrySql());
-            }
-        }
-        job.save(retryStmt, 1);
-        harvester.settings.storageAbstraction
-                .saveJob(job.getActualJob(), retryStmt, 1 + JobMetaData.RETRY_PLACEHOLDER_COUNT);
-        return retryStmt;
-    }
-
-    /**
-     * Construct a prepared statement, if needed, and fill in data
-     *
-     * @param job          the job and metadata for the queue entry
-     * @param milliseconds how long to postpone processing
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getPostponeStmt(JobWithMetaData<T> job, long milliseconds) throws SQLException {
-        if (postponeStmt == null) {
-            try (QueueHealth.Context call = health.databaseCall()) {
-                postponeStmt = connection.prepareStatement(harvester.getPostponeSql());
-                log.debug("Prepared statement: {}", harvester.getPostponeSql());
-            }
-        }
-
-        job.saveDelayed(postponeStmt, 1, milliseconds);
-        harvester.settings.storageAbstraction
-                .saveJob(job.getActualJob(), postponeStmt, 1 + JobMetaData.POSTPONED_PLACEHOLDER_COUNT);
-        return postponeStmt;
-    }
-
-    /**
-     * Construct a prepared statement, if needed, and fill in data
-     *
-     * @param job  old job
-     * @param diag the error message
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getFailedStmt(JobWithMetaData<T> job, String diag) throws SQLException {
-        if (failedStmt == null) {
-            try (QueueHealth.Context call = health.databaseCall()) {
-                failedStmt = connection.prepareStatement(harvester.getFailedSql());
-            }
-        }
-        failedStmt.setString(Harvester.SqlFailed.CONSUMER_POS, job.getConsumer());
-        failedStmt.setTimestamp(Harvester.SqlFailed.QUEUED_POS, job.getQueued());
-        failedStmt.setString(Harvester.SqlFailed.DIAG_POS, diag);
-        return failedStmt;
-    }
-
-    /**
-     * Delete duplicate jobs
-     *
-     * @param job      job to match
-     * @param consumer which consumer to deduplicate for
-     * @return sql statement
-     * @throws SQLException for database errors
-     */
-    private PreparedStatement getDeleteDuplicateStmt(JobWithMetaData<T> job, String consumer) throws SQLException {
-        if (deleteDuplicateStmt == null) {
-            if (harvester.getDeleteDuplicateSql() == null) {
-                return null;
-            }
-            try (QueueHealth.Context call = health.databaseCall()) {
-                deleteDuplicateStmt = connection.prepareStatement(harvester.getDeleteDuplicateSql());
-            }
-        }
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_1, consumer);
-        deleteDuplicateStmt.setString(Harvester.SqlDeleteDuplicatePositions.CONSUMER_POS_2, consumer);
-        harvester.settings.deduplicateAbstraction
-                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicatePositions.DUPLICATE_POS);
-        harvester.settings.deduplicateAbstraction
-                .duplicateValues(job.getActualJob(), deleteDuplicateStmt, Harvester.SqlDeleteDuplicatePositions.DUPLICATE_POS + harvester.getDuplicateDeleteColumnsCount());
-        return deleteDuplicateStmt;
-    }
-
-    @FunctionalInterface
-    private interface SQLExceptionMethod {
-
-        void accept() throws SQLException;
-    }
-
-    /**
-     * Wrapper around sql method, logging in case of an exception
-     *
-     * @param method        the method to call
-     * @param exceptionText the exception text used for logging errors
-     */
-    private static void sql(SQLExceptionMethod method, String exceptionText) {
-        try {
-            method.accept();
-        } catch (SQLException ex) {
-            log.error("{}: {}", exceptionText, ex.getMessage());
-            log.debug("{}:", exceptionText, ex);
-        }
-    }
-
-    /**
-     * Unwrap an exception, throwing it if there's any cause of this type
-     *
-     * @param <T>   Exception type
-     * @param ex    Base exception
-     * @param clazz exception class
-     * @throws T if found in caused-by
-     */
-    private static <T extends Exception> void exceptionUnwrap(Exception ex, Class<T> clazz) throws T {
-        Throwable t = ex.getCause();
-        while (t != null) {
-            if (clazz.isAssignableFrom(t.getClass()))
-                throw (T) t;
-            t = t.getCause();
-        }
-    }
-
 }

@@ -19,6 +19,7 @@
 package dk.dbc.pgqueue.consumer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -59,6 +60,13 @@ public class JobMetaData {
         queued = resultSet.getTimestamp(column++);
         dequeueAfter = resultSet.getTimestamp(column++);
         tries = resultSet.getInt(column++) + 1;
+    }
+
+    public JobMetaData() {
+        consumer = null;
+        queued = null;
+        dequeueAfter = null;
+        tries = 0;
     }
 
     /**
